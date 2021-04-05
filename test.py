@@ -1,13 +1,9 @@
-x = 1
-y = 1
-z = 1
+my_list = [1, 2, 3]
+i = 0
 
-l = []
+for i, e in enumerate(my_list):
 
-for i in range(-1, 2):
-    for j in range(-1, 2):
-        for k in range(-1, 2):
-            p = x + i, y + j, z + k
-            l.append(p)
+    print(i)
 
-print(len(l))
+
+print(i)

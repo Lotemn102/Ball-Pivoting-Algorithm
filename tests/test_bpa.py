@@ -1,34 +1,29 @@
 import unittest
+
+from grid import Grid
+from point import Point
 from bpa import BPA
-from grid import Point
 
 
 class TestBPA(unittest.TestCase):
-    def test_distance(self):
-        p1 = Point(1, 1, 0)
-        p2 = Point(2, 1, 2)
-        d = BPA.calc_distance(p1, p2)
-        self.assertEqual(round(d, 2), 2.24)
+    '''
+    def test_create_test_file(self):
+        f = open("test_1_no_normal.txt", "w")
 
-        p3 = Point(0, 0, 0)
-        p4 = Point(-1, 1, 2)
-        d = BPA.calc_distance(p3, p4)
-        self.assertEqual(round(d, 2), 2.45)
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                for k in range(-1, 2):
+                    point_as_string = str(i + 1) + " " + str(j + 1) + " " + str(k + 1) + "\n"
+                    f.write(point_as_string)
 
-    def test_incircle_radius(self):
-        p1 = Point(1, 1, 1)
-        p2 = Point(0, 2, 0)
-        p3 = Point(3, 3, 3)
+        f.close()
+    '''
 
-        r = BPA.calc_incircle_radius(p1, p2, p3)
-        self.assertEqual(round(r, 3), 0.592)
+    def test_find_seed(self):
+        # TODO: This doesn't work properly
+        bpa = BPA(path='test_1_no_normal.txt', radius=0.5)
+        bpa.find_seed_triangle()
 
-        p1 = Point(1, 1, 1)
-        p2 = Point(0, -1, 0)
-        p3 = Point(2, -1, 3)
-
-        r = BPA.calc_incircle_radius(p1, p2, p3)
-        self.assertEqual(round(r, 3), 0.804)
 
 
 

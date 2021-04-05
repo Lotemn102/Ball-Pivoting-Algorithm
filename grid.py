@@ -3,21 +3,8 @@ import numpy as np
 from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 
-
-class Point:
-    def __init__(self, x, y, z):
-        self.z = np.float32(z)
-        self.y = np.float32(y)
-        self.x = np.float32(x)
-        self._cell_code = None
-
-    @property
-    def cell_code(self):
-        return self._cell_code
-
-    @cell_code.setter
-    def cell_code(self, code):
-        self._cell_code = code
+from edge import Edge
+import utils
 
 
 class Grid:
@@ -26,24 +13,10 @@ class Grid:
         self.radius = radius
         self.num_cells = 0
         self.bounding_box_size = 0
+        self.edges = []
 
         if points is not None:
             self.init_with_data(points)
-
-    @staticmethod
-    def _encode_cell(x, y, z):
-        # Each coordinate is 8 bytes.
-        code = x | (y << 8) | (z << 16)
-        return code
-
-    @staticmethod
-    def _decode_cell(code):
-        mask_x = 0b000000000000000011111111
-        x = code & mask_x
-        mask_y = 0b000000001111111100000000
-        y = (code & mask_y) >> 8
-        z = code >> 16
-        return int(x), int(y), int(z)
 
     def show(self):
         """
@@ -109,7 +82,7 @@ class Grid:
             z_cell = math.floor(point.z / (2 * self.radius))
 
             # Encode cell location.
-            code = self._encode_cell(x=x_cell, y=y_cell, z=z_cell)
+            code = utils.encode_cell(x=x_cell, y=y_cell, z=z_cell)
             point.cell_code = code
 
             # Add the point to the cell in the hash table.
@@ -118,26 +91,19 @@ class Grid:
 
             self.cells[code].append(point)
 
-    def get_neighbor_points(self, point):
-        neighbor_points = []
+    def get_cell_points(self, cell_code):
+        points = []
 
-        # Find the point's cell.
-        x, y, z = self._decode_cell(point.cell_code)
+        if cell_code in self.cells.keys():
+            points.extend(self.cells[cell_code])
 
-        # Check for each of the possible 8 neighbors if it exists.
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                for k in range(-1, 2):
-                    cell_corner = x + i, y + j, z + k
+        return points
 
-                    if cell_corner[0] < 0 or cell_corner[1] < 0 or cell_corner[2] < 0:
-                        continue
+    def add_edge(self, edge: Edge):
+        self.edges.append(edge)
 
-                    cell_code = self._encode_cell(cell_corner[0], cell_corner[1], cell_corner[2])
-                    if cell_code in self.cells.keys():
-                        neighbor_points.extend(self.cells[cell_code])
-
-        return neighbor_points
+    def remove_edge(self, edge: Edge):
+        self.edges.remove(edge)
 
 
 

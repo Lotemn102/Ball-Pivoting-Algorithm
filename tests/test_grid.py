@@ -1,5 +1,6 @@
 import unittest
-from grid import Grid, Point
+from grid import Grid
+from point import Point
 
 
 class TestGrid(unittest.TestCase):
@@ -20,6 +21,8 @@ class TestGrid(unittest.TestCase):
 
     def test_get_neighbors(self):
         points = []
+        center_point = None
+        center_point_neighbors = []
 
         for i in range(-1, 2):
             for j in range(-1, 2):
@@ -27,20 +30,25 @@ class TestGrid(unittest.TestCase):
                     p = Point(i+1, j+1, k+1)
                     points.append(p)
 
+                    if i == 1 and j == 1 and k == 1:
+                        center_point = p
+
         grid = Grid(radius=0.5)
         grid.init_with_data(points)
 
-        neighbor_points = grid.get_neighbor_points(points[0])
-        self.assertLessEqual(len(neighbor_points), 27)
+        for point in points:
+            neighbor_points = []
+            neighbor_cells = point.neighbor_nodes
 
-        points_vals = [(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1), (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)]
+            for cell in neighbor_cells:
+                neighbor_points.extend(grid.get_cell_points(cell))
 
-        for point in neighbor_points:
-            coordinates = (point.x, point.y, point.z)
-            self.assertIn(coordinates, points_vals)
+            self.assertLessEqual(len(neighbor_points), 27)
 
-        grid.show()
+            if point is center_point:
+                center_point_neighbors = neighbor_points
 
+        self.assertLessEqual(len(center_point_neighbors), 27)
 
 
 

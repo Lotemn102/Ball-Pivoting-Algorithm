@@ -1,15 +1,21 @@
-from grid import Grid, Point
+from grid import Grid
+from point import Point
+from edge import Edge
+import utils
+
+import copy
 import math
 
 
 class BPA:
     def __init__(self, path, radius):
-        pass
-        #points = self._read_points(path)
-        #self.grid = Grid(points=points, radius=radius)
+        points = self.read_points(path)
+        # TODO: Do i really want this to be dynamic array?
+        self.free_points = copy.deepcopy(points)
+        self.radius = radius
+        self.grid = Grid(points=points, radius=radius)
 
-    @staticmethod
-    def _read_points(path):
+    def read_points(self, path):
         points = []
         f = open(path, "r")
         lines = f.read().splitlines()
@@ -23,46 +29,74 @@ class BPA:
             p = Point(float(coordinates[0]), float(coordinates[1]), float(coordinates[2]))
             points.append(p)
 
+        f.close()
+
         return points
 
-    @staticmethod
-    def calc_incircle_radius(p1: Point, p2: Point, p3: Point):
-        """
-        Calculate the radius of the incircle in a triangle.
-        Based on this formula:
-         https://en.wikipedia.org/wiki/Incircle_and_excircles_of_a_triangle#Radius
+    def find_seed_triangle(self) -> int:
+        # Stop if there aren't any free points left.
+        if len(self.free_points) == 0 or len(self.free_points) <= 2:
+            return -1
 
-        :param p1: First point of triangle.
-        :param p2: Second point of triangle.
-        :param p3: Third point of triangle.
-        :return: The radius of the incircle.
-        """
+        # TODO: Do i really want this to be done randomly?
+        # Find a random free point.
+        p1 = self.free_points[0]
+        p1_neighbor_points = []
 
-        edge_1_length = BPA.calc_distance(p1, p2)
-        edge_2_length = BPA.calc_distance(p2, p3)
-        edge_3_length = BPA.calc_distance(p1, p3)
+        # Find all points in 2r distance from that point.
+        for cell in p1.neighbor_nodes:
+            p1_neighbor_points.extend(self.grid.get_cell_points(cell))
+            p2_neighbor_points = []
 
-        s = (edge_1_length + edge_2_length + edge_3_length) / 2
-        r = math.sqrt(((s - edge_1_length)*(s - edge_2_length)*(s - edge_3_length)) / s)
-        return r
+            # For each other point, find all points that are in 2r distance from that other point.
+            for p2 in p1_neighbor_points:
+                for sub_cell in p2.neighbor_nodes:
+                    p2_neighbor_points.extend(self.grid.get_cell_points(sub_cell))
 
-    @staticmethod
-    def calc_distance(p1: Point, p2: Point):
-        """
-        Calculate the distance between 2 3D points.
+                    # For each three points we got, check if a sphere with a radius of r cant be fitted inside the
+                    # triangle.
+                    for p3 in p2_neighbor_points:
+                        if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
+                            # Add the new edges.
+                            self.grid.edges.append(Edge(p1, p2))
+                            self.grid.edges.append(Edge(p1, p3))
+                            self.grid.edges.append(Edge(p2, p3))
 
-        :param p1: First point.
-        :param p2: Second point.
-        :return: Distance between the points.
-        """
-        return math.sqrt(math.pow((p2.x - p1.x), 2) + math.pow((p2.y - p1.y), 2) + math.pow((p2.z - p1.z), 2))
+                            # Remove points from free points list.
+                            self.free_points.remove(p1)
+                            self.free_points.remove(p2)
+                            self.free_points.remove(p3)
+                            return 1
 
-    def _find_seed_triangle(self):
-        pass
+        # Else, find another free point and start over.
+        self.free_points.remove(p1)
+        return self.find_seed_triangle()
 
     def create_mesh(self):
         pass
 
+    def expand_triangle(self, edge: Edge):
+        # Avoid duplications.
+        intersect_cells = list(set(edge.p1.neighbor_nodes) & set(edge.p2.neighbor_nodes))
+        possible_points = []
+        idx = 0
 
+        p1, p2 = edge.p1, edge.p2
 
-bpa = BPA('bunny.pcd', 0.5)
+        for cell in intersect_cells:
+            possible_points.extend(self.grid.get_cell_points(cell))
+
+        for idx, point in enumerate(possible_points):
+            # If a sphere's radius is smaller than the radius of the incircle of a triangle, the sphere can fit into the
+            # triangle.
+            if self.radius <= utils.calc_incircle_radius(p1, p2, point):
+                # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
+                self.free_points.remove(point)
+
+                self.grid.add_edge(Edge(p1, point))
+                self.grid.add_edge(Edge(p2, point))
+                break
+        else: # Might not be trivial: Python has for/else structure...
+            # If we can't keep going from this edge, remove it.
+            if idx == len(possible_points):
+                self.grid.remove_edge(edge)
