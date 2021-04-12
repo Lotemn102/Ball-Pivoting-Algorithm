@@ -24,11 +24,18 @@ class BPA:
         for line in lines:
             coordinates = line.split()
 
-            if len(coordinates) is not 3:
-                continue
+            if len(coordinates) is 3:
+                p = Point(float(coordinates[0]), float(coordinates[1]), float(coordinates[2]))
+                points.append(p)
 
-            p = Point(float(coordinates[0]), float(coordinates[1]), float(coordinates[2]))
-            points.append(p)
+            elif len(coordinates) is 6:
+                p = Point(float(coordinates[0]), float(coordinates[1]), float(coordinates[2]))
+                normal = Point(float(coordinates[3]), float(coordinates[4]), float(coordinates[5]))
+                p.normal = normal
+                points.append(p)
+
+            else:
+                continue
 
         f.close()
 
@@ -111,6 +118,7 @@ class BPA:
         for idx, point in enumerate(possible_points):
             # If a sphere's radius is smaller than the radius of the incircle of a triangle, the sphere can fit into the
             # triangle.
+            t = utils.calc_incircle_radius(p1, p2, point)
             if self.radius <= utils.calc_incircle_radius(p1, p2, point):
                 # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
                 self.points.remove(point)
@@ -122,5 +130,5 @@ class BPA:
                 break
         else: # Might not be trivial: Python has for/else structure...
             # If we can't keep going from this edge, remove it.
-            if idx == len(possible_points):
+            if idx == len(possible_points)-1:
                 self.grid.remove_edge(edge)

@@ -4,11 +4,12 @@ import utils
 
 
 class Point:
-    def __init__(self, x, y, z):
+    def __init__(self, x, y, z, normal=None):
         self.z = np.float32(z)
         self.y = np.float32(y)
         self.x = np.float32(x)
         self.cell_code = None
+        self.normal = normal
 
     @property
     def neighbor_nodes(self):

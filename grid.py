@@ -1,10 +1,6 @@
 import math
 import numpy as np
-import cubeshow as cs
 from matplotlib import pyplot
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
-
 
 from edge import Edge
 import utils
@@ -24,7 +20,7 @@ class Grid:
 
     def show(self):
         """
-        Shows only the points currently and not the actual grid.
+        Shows the grid with the points and edges.
 
         Implementation is based on this code:
         https://github.com/safl/ndarray_plot
@@ -46,7 +42,7 @@ class Grid:
         }
 
         num_cells = math.ceil(self.num_cells_per_axis)
-        spacing_factor = 0.05
+        spacing_factor = 0.1
 
         for l in range(0, num_cells):
             for m in range(0, num_cells):
@@ -76,11 +72,31 @@ class Grid:
                             color='gray'
                         )
 
+        # Plot points.
         points = self.all_points
         x_vals = [point.x for point in points]
         y_vals = [point.y for point in points]
         z_vals = [point.z for point in points]
         ax.scatter(x_vals, y_vals, z_vals)
+
+        #x_vals = [point.normal.x for point in points]
+        #y_vals = [point.normal.y for point in points]
+        #z_vals = [point.normal.z for point in points]
+        #ax.scatter(x_vals, y_vals, z_vals)
+
+        '''
+        x = [point.x, point.normal.x]
+        y = [point.y, point.normal.y]
+        z = [point.z, point.normal.z]
+        ax.plot(x, y, z, c='g')
+        '''
+
+        # Plot edges.
+        for edge in self.edges:
+            x = [edge.p1.x, edge.p2.x]
+            y = [edge.p1.y, edge.p2.y]
+            z = [edge.p1.z, edge.p2.z]
+            ax.plot(x, y, z, c='r')
 
         pyplot.show()
 
