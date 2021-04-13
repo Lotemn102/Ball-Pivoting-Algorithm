@@ -16,3 +16,6 @@ http://jbehley.github.io/papers/behley2015icra.pdf
 https://www.ipol.im/pub/art/2014/81/article.pdf
 
 http://www.sci.utah.edu/~csilva/papers/tvcg99.pdf
+
+## TODO
+- Check if we can easily add edges to point in the point cloud using Open3d.

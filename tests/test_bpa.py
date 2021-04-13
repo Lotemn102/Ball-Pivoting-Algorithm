@@ -65,17 +65,17 @@ class TestBPA(unittest.TestCase):
 
     def test_expand_triangle(self):
         # Load data.
-        bpa = BPA(path='../test_1_normal.txt', radius=0.02)
+        bpa = BPA(path='bunny_with_normals.txt', radius=0.02)
         bpa.grid.show()
 
-        # Find a seed triangle.
-        bpa.find_seed_triangle()
-
-        # Expand the seed triangle.
-        edges = bpa.grid.edges
-        bpa.expand_triangle(edges[0])
-
-        print(bpa.grid.edges)
+        # # Find a seed triangle.
+        # bpa.find_seed_triangle()
+        #
+        # # Expand the seed triangle.
+        # edges = bpa.grid.edges
+        # bpa.expand_triangle(edges[0])
+        #
+        # print(bpa.grid.edges)
 
 
 

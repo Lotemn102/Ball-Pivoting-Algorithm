@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from matplotlib import pyplot
+import open3d
 
 from edge import Edge
 import utils
@@ -27,78 +27,18 @@ class Grid:
 
         :return: None.
         """
+        pcd = open3d.geometry.PointCloud()
+        # Color the point in black.
+        points_mask = np.zeros(shape=(len(self.all_points), 3))
+        black_colors = np.zeros_like(points_mask)
+        pcd.colors = open3d.Vector3dVector(black_colors)
+        tuple_points = [(point.x, point.y, point.z) for point in self.all_points]
+        np_points = np.array(tuple_points)
 
-        fig = pyplot.figure(dpi=120)
-        ax = fig.add_subplot(111, projection='3d')
-        ax.axis('off')
+        # From numpy to Open3D
+        pcd.points = open3d.utility.Vector3dVector(np_points)
+        open3d.visualization.draw_geometries([pcd])
 
-        element = {
-            "top": np.asarray([[[0, 1], [0, 1]], [[0, 0], [1, 1]], [[1, 1], [1, 1]]]),
-            "bottom": np.asarray([[[0, 1], [0, 1]], [[0, 0], [1, 1]], [[0, 0], [0, 0]]]),
-            "left": np.asarray([[[0, 0], [0, 0]], [[0, 1], [0, 1]], [[0, 0], [1, 1]]]),
-            "right": np.asarray([[[1, 1], [1, 1]], [[0, 1], [0, 1]], [[0, 0], [1, 1]]]),
-            "front": np.asarray([[[0, 1], [0, 1]], [[0, 0], [0, 0]], [[0, 0], [1, 1]]]),
-            "back": np.asarray([[[0, 1], [0, 1]], [[1, 1], [1, 1]], [[0, 0], [1, 1]]])
-        }
-
-        num_cells = math.ceil(self.num_cells_per_axis)
-        spacing_factor = 0.1
-
-        for l in range(0, num_cells):
-            for m in range(0, num_cells):
-                for n in range(0, num_cells):
-                    relative_pos = (l * spacing_factor, m * spacing_factor, n * spacing_factor)
-
-                    for side in element:
-                        (Ls, Ms, Ns) = (
-                            (element[side][0] + l) + relative_pos[0],
-                            (element[side][1] + m) + relative_pos[1],
-                            (element[side][2] + n) + relative_pos[2]
-                        )
-
-                        Ls /= num_cells
-                        Ls *= self.bounding_box_size
-
-                        Ms /= num_cells
-                        Ms *= self.bounding_box_size
-
-                        Ns /= num_cells
-                        Ns *= self.bounding_box_size
-
-                        ax.plot_surface(
-                            Ls, Ns, Ms,
-                            rstride=1, cstride=1,
-                            alpha=0.15,
-                            color='gray'
-                        )
-
-        # Plot points.
-        points = self.all_points
-        x_vals = [point.x for point in points]
-        y_vals = [point.y for point in points]
-        z_vals = [point.z for point in points]
-        ax.scatter(x_vals, y_vals, z_vals)
-
-        #x_vals = [point.normal.x for point in points]
-        #y_vals = [point.normal.y for point in points]
-        #z_vals = [point.normal.z for point in points]
-        #ax.scatter(x_vals, y_vals, z_vals)
-
-        '''
-        x = [point.x, point.normal.x]
-        y = [point.y, point.normal.y]
-        z = [point.z, point.normal.z]
-        ax.plot(x, y, z, c='g')
-        '''
-
-        # Plot edges.
-        for edge in self.edges:
-            x = [edge.p1.x, edge.p2.x]
-            y = [edge.p1.y, edge.p2.y]
-            z = [edge.p1.z, edge.p2.z]
-            ax.plot(x, y, z, c='r')
-
-        pyplot.show()
 
     def init_with_data(self, list_of_points):
         min_x, max_x, min_y, max_y, min_z, max_z = 0, 0, 0, 0, 0, 0
