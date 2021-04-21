@@ -35,10 +35,17 @@ class Grid:
         tuple_points = [(point.x, point.y, point.z) for point in self.all_points]
         np_points = np.array(tuple_points)
 
-        # From numpy to Open3D
+        # Draw points
         pcd.points = open3d.utility.Vector3dVector(np_points)
-        open3d.visualization.draw_geometries([pcd])
 
+        # Draw edges
+        lines = [[edge.p1.id, edge.p2.id] for edge in self.edges]
+        colors = [[1, 0, 0] for _ in range(len(lines))]
+        line_set = open3d.geometry.LineSet()
+        line_set.points = open3d.Vector3dVector(np_points)
+        line_set.lines = open3d.utility.Vector2iVector(lines)
+        line_set.colors = open3d.utility.Vector3dVector(colors)
+        open3d.visualization.draw_geometries([line_set, pcd])
 
     def init_with_data(self, list_of_points):
         min_x, max_x, min_y, max_y, min_z, max_z = 0, 0, 0, 0, 0, 0

@@ -4,16 +4,17 @@ import utils
 
 
 class Point:
-    def __init__(self, x, y, z, normal=None):
+    def __init__(self, x, y, z, id, normal=None):
         self.z = np.float32(z)
         self.y = np.float32(y)
         self.x = np.float32(x)
         self.cell_code = None
         self.normal = normal
+        self.id = id
 
     @property
     def neighbor_nodes(self):
-        neighbor_nodes = []
+        neighbor_nodes = [self.cell_code]
 
         # Find the point's cell.
         x, y, z = utils.decode_cell(self.cell_code)
