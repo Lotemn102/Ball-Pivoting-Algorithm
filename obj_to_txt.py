@@ -1,11 +1,12 @@
-import open3d as o3d
 import numpy as np
-from bpa import BPA
-import time
 from point import Point
 
+"""
+Models are taken from here: https://github.com/alecjacobson/common-3d-test-models
+"""
+
 if __name__ == "__main__":
-    f = open("stanford-bunny.file")
+    f = open("teapot.obj")
     lines = f.readlines()
     f.close()
 
@@ -22,7 +23,7 @@ if __name__ == "__main__":
                 splitted[i] = element[:-1]
 
         if splitted != [] and 'v' in splitted[0]:
-            p = Point(x=float(splitted[1])*1000, y=float(splitted[2])*1000, z=float(splitted[3])*1000, id=1)
+            p = Point(x=float(splitted[1])*1, y=float(splitted[2])*1, z=float(splitted[3])*1, id=1)
             points.append(p)
 
         if splitted != [] and 'f' in splitted[0]:
@@ -51,13 +52,3 @@ if __name__ == "__main__":
         f.write(str(k.x) + " " + str(k.y) + " " + str(k.z) + " " + str(v[0]) + " " + str(v[1]) + " " + str(v[2]) + "\n")
 
     f.close()
-
-
-
-
-
-
-
-
-
-

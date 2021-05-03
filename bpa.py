@@ -1,3 +1,5 @@
+import random
+
 from grid import Grid
 from point import Point
 from edge import Edge
@@ -211,14 +213,24 @@ class BPA:
             while edges and counter < limit_iterations:
                 counter += 1
 
+                # Pick randomly the edge to start with
+                rand = random.randint(1, 10)
+
+                if rand % 2 == 0:
+                    i = 0
+                    j = 1
+                else:
+                    i = 1
+                    j = 0
+
                 # Try the first one
-                e1, e2 = self.expand_triangle(edges[0])
+                e1, e2 = self.expand_triangle(edges[i])
 
                 if e1 is not None and e2 is not None:
                     self.update_visualizer(color='green')
                     edges = [e1, e2]
                 else: # If we can't expand from the first, try the second one.
-                    e1, e2 = self.expand_triangle(edges[1])
+                    e1, e2 = self.expand_triangle(edges[j])
 
                     if e1 is not None and e2 is not None:
                         self.update_visualizer(color='green')
@@ -244,7 +256,7 @@ class BPA:
         dists_p2 = [utils.calc_distance(p2, p3) for p3 in possible_points]
         dists = [min(dists_p1[i], dists_p2[i]) for i in range(len(dists_p1))]
 
-        possible_points = [x for _, x in sorted(zip(dists_p2, possible_points))]
+        possible_points = [x for _, x in sorted(zip(dists, possible_points))]
 
         for index, p3 in enumerate(possible_points):
 
@@ -276,7 +288,7 @@ class BPA:
                     continue
 
                 # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
-                #self.points.remove(p3)
+                self.points.remove(p3)
                 self.num_free_points = self.num_free_points - 1
 
                 # We got new our edges!

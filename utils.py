@@ -1,9 +1,7 @@
 import math
 
-from point import Point
 
-
-def calc_distance(p1: Point, p2: Point):
+def calc_distance(p1, p2):
     """
     Calculate the distance between 2 3D points.
 
@@ -14,7 +12,7 @@ def calc_distance(p1: Point, p2: Point):
     return math.sqrt(math.pow((p2.x - p1.x), 2) + math.pow((p2.y - p1.y), 2) + math.pow((p2.z - p1.z), 2))
 
 
-def calc_incircle_radius(p1: Point, p2: Point, p3: Point):
+def calc_incircle_radius(p1, p2, p3):
     """
     Calculate the radius of the incircle in a triangle.
     Based on this formula:

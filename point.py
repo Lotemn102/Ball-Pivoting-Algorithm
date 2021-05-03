@@ -1,7 +1,5 @@
 import numpy as np
-
 import utils
-
 
 class Point:
     def __init__(self, x, y, z, id, normal=None):
@@ -11,6 +9,9 @@ class Point:
         self.cell_code = None
         self.normal = normal
         self.id = id
+
+    def __lt__(self, other):
+        return self.x < other.x
 
     @property
     def neighbor_nodes(self):
