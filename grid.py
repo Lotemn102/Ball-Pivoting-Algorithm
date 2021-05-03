@@ -14,6 +14,7 @@ class Grid:
         self.num_cells_per_axis = 0
         self.bounding_box_size = 0
         self.edges = []
+        self.cell_size = 0
 
         if points is not None:
             self.init_with_data(points)
@@ -69,6 +70,15 @@ class Grid:
         # Calculate each cell edge size.
         self.num_cells_per_axis = self.bounding_box_size / (2 * self.radius)
 
+        '''
+        if self.num_cells_per_axis % 0.5 == 0:
+            self.num_cells_per_axis = math.ceil(self.num_cells_per_axis)
+        else:
+            self.num_cells_per_axis = round(self.num_cells_per_axis)
+        '''
+
+        self.cell_size = self.bounding_box_size / self.num_cells_per_axis
+
         # Start appending the data points to their cells.
         for point in list_of_points:
             # Find the point's fitting cell. Assuming the bounding box's front-bottom-right corner is the origin (marked
@@ -89,9 +99,9 @@ class Grid:
                 z
             '''
 
-            x_cell = math.floor(point.x / (2 * self.radius))
-            y_cell = math.floor(point.y / (2 * self.radius))
-            z_cell = math.floor(point.z / (2 * self.radius))
+            x_cell = int((point.x // self.cell_size) * self.cell_size)
+            y_cell = int((point.y // self.cell_size) * self.cell_size)
+            z_cell = int((point.z // self.cell_size) * self.cell_size)
 
             # Encode cell location.
             code = utils.encode_cell(x=x_cell, y=y_cell, z=z_cell)

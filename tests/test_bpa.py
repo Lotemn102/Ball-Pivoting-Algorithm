@@ -66,6 +66,16 @@ class TestBPA(unittest.TestCase):
         # For sanity check
         pyplot.show()
 
+    def test_calc_normals(self):
+        # Load data.
+        bpa = BPA(path='normals_test.txt', radius=0.2, visualizer=True)
+
+        # Find a seed triangle.
+        bpa.find_seed_triangle()
+        bpa.update_visualizer(color='red')
+
+        bpa.lock_visualizer()
+
     def test_expand_triangle(self):
         # Load data.
         bpa = BPA(path='bunny_with_normals.txt', radius=0.002, visualizer=True)
@@ -82,20 +92,25 @@ class TestBPA(unittest.TestCase):
     def test_visualizer(self):
         # Load data.
         bpa = BPA(path='bunny_with_normals.txt', radius=0.002, visualizer=True)
-        edge_index = 0
 
-        while 1:
-            # Find a seed triangle.
-            bpa.find_seed_triangle()
-            bpa.update_visualizer(color='red')
+        # Find a seed triangle.
+        bpa.find_seed_triangle()
+        bpa.update_visualizer(color='red')
 
-            # Expand the seed triangle.
-            edges = bpa.grid.edges
+        # Expand the seed triangle.
+        edges = bpa.grid.edges
+        bpa.expand_triangle(edges[0])
+        bpa.update_visualizer(color='green')
 
-            while bpa.expand_triangle(edges[edge_index]):
-                edges = bpa.grid.edges
-                bpa.update_visualizer(color='green')
-                edge_index += 1
+        bpa.vis.run()
+
+    def test_create_mesh(self):
+        # Load data.
+        bpa = BPA(path='bunny_with_normals.txt', radius=0.002, visualizer=True)
+        bpa.create_mesh()
+        bpa.lock_visualizer()
+
+
 
 
 

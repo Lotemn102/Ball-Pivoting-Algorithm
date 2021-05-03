@@ -52,7 +52,13 @@ class BPA:
             c = [0, 0, 1]
 
         lines = [[edge.p1.id, edge.p2.id] for edge in self.grid.edges]
-        colors = [c for _ in range(len(lines))]
+
+        for edge in self.grid.edges:
+            if edge.color == []:
+                edge.color = c
+
+        colors = [edge.color for edge in self.grid.edges]
+        #colors = [c for _ in range(len(lines))]
         line_set = o3d.geometry.LineSet()
         points = np.array([(point.x, point.y, point.z) for point in self.const_points])
         line_set.points = o3d.Vector3dVector(points)
@@ -63,6 +69,9 @@ class BPA:
         self.vis.update_geometry()
         self.vis.poll_events()
         self.vis.update_renderer()
+
+    def lock_visualizer(self):
+        self.vis.run()
 
     def read_points(self, path):
         points = []
@@ -78,7 +87,7 @@ class BPA:
 
             elif len(coordinates) is 6:
                 p = Point(float(coordinates[0]), float(coordinates[1]), float(coordinates[2]), id=i)
-                normal = Point(float(coordinates[3]), float(coordinates[4]), float(coordinates[5]), id=i)
+                normal = [float(coordinates[3]), float(coordinates[4]), float(coordinates[5])]
                 p.normal = normal
                 points.append(p)
 
@@ -109,50 +118,75 @@ class BPA:
         for cell in p1.neighbor_nodes:
             p1_neighbor_points.extend(self.grid.get_cell_points(cell))
 
-            # For each other point, find all points that are in 2r distance from that other point.
-            for p2 in p1_neighbor_points:
+        # TODO: Don't know why i append all points twice in the previous loop?
+        p1_neighbor_points = set(p1_neighbor_points)
 
-                if p2.x == p1.x and p2.y == p1.y and p2.z == p1.z:
+        # Sort points by distance from p1.
+        dists = [utils.calc_distance(p1, p2) for p2 in p1_neighbor_points]
+        p1_neighbor_points = [x for _, x in sorted(zip(dists, p1_neighbor_points))]
+
+        # For each other point, find all points that are in 2r distance from that other point.
+        for p2 in p1_neighbor_points:
+
+            if p2.x == p1.x and p2.y == p1.y and p2.z == p1.z:
+                continue
+
+            if p2 not in self.points:
+                continue
+
+            # Find all points that are on 2r distance from p1 and p2
+            intersect_cells = list(set(p1.neighbor_nodes) & set(p2.neighbor_nodes))
+            possible_points = []
+
+            for cell in intersect_cells:
+                possible_points.extend(self.grid.get_cell_points(cell))
+
+            # Sort points by distance from p2.
+            dists = [utils.calc_distance(p2, p3) for p3 in possible_points]
+            possible_points = [x for _, x in sorted(zip(dists, possible_points))]
+
+            for i, p3 in enumerate(possible_points):
+                if (p3.x == p1.x and p3.y == p1.y and p3.z == p1.z) or (p2.x == p3.x and p2.y == p3.y and p2.z
+                                                                        == p3.z):
                     continue
 
-                # Find all points that are on 2r distance from p1 and p2
-                intersect_cells = list(set(p1.neighbor_nodes) & set(p2.neighbor_nodes))
-                possible_points = []
+                if p3 not in self.points:
+                    continue
 
-                for cell in intersect_cells:
-                    possible_points.extend(self.grid.get_cell_points(cell))
+                # For each three points we got, check if a sphere with a radius of r cant be fitted inside the
+                # triangle.
+                if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
+                    # Calculate triangle's normal.
+                    v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
+                    v2 = [p1.x - p3.x, p1.y - p3.y, p1.z - p3.z]
+                    triangle_normal = np.cross(v1, v2)
 
-                for p3 in possible_points:
-                    if (p3.x == p1.x and p3.y == p1.y and p3.z == p1.z) or (p2.x == p3.x and p2.y == p3.y and p2.z
-                                                                            == p3.z):
+                    # Check if the normal of the triangle is on the same direction with all 3 points normals.
+                    if np.dot(triangle_normal, p1.normal) < 0 or np.dot(triangle_normal, p2.normal) < 0 or \
+                        np.dot(triangle_normal, p3.normal) < 0:
                         continue
 
-                    temp = utils.calc_incircle_radius(p1, p2, p3)
+                    # Add the new edges.
+                    e1 = Edge(p1, p2)
+                    e2 = Edge(p1, p3)
+                    e3 = Edge(p2, p3)
+                    self.grid.edges.append(e1)
+                    self.grid.edges.append(e2)
+                    self.grid.edges.append(e3)
 
-                    # For each three points we got, check if a sphere with a radius of r cant be fitted inside the
-                    # triangle.
-                    if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
-                        # Add the new edges.
-                        e1 = Edge(p1, p2)
-                        e2 = Edge(p1, p3)
-                        e3 = Edge(p2, p3)
-                        self.grid.edges.append(e1)
-                        self.grid.edges.append(e2)
-                        self.grid.edges.append(e3)
+                    # Move the points to the end of the list.
+                    self.points.remove(p1)
+                    self.points.insert(len(self.points), p1)
+                    self.num_free_points = self.num_free_points - 1
 
-                        # Move the points to the end of the list.
-                        self.points.remove(p1)
-                        self.points.insert(len(self.points), p1)
-                        self.num_free_points = self.num_free_points - 1
+                    self.points.remove(p2)
+                    self.points.insert(len(self.points), p2)
+                    self.num_free_points = self.num_free_points - 1
 
-                        self.points.remove(p2)
-                        self.points.insert(len(self.points), p2)
-                        self.num_free_points = self.num_free_points - 1
-
-                        self.points.remove(p3)
-                        self.points.insert(len(self.points), p3)
-                        self.num_free_points = self.num_free_points - 1
-                        return 1, (e1, e2, e3)
+                    self.points.remove(p3)
+                    self.points.insert(len(self.points), p3)
+                    self.num_free_points = self.num_free_points - 1
+                    return 1, (e1, e2, e3)
 
         # Else, find another free point and start over.
         self.points.remove(p1)
@@ -160,55 +194,100 @@ class BPA:
         self.num_free_points = self.num_free_points - 1
         return self.find_seed_triangle(), None
 
-    def create_mesh(self):
-        while 1:
+    def create_mesh(self, limit_iterations=float('inf')):
+        times_failed_to_expand_from_new_seed = 0
+        counter = 0
+
+        while 1 and counter < limit_iterations:
+            if times_failed_to_expand_from_new_seed > 2:
+                return
+
             # Find a seed triangle.
             _, edges = self.find_seed_triangle()
+            print("new seed!")
             self.update_visualizer(color='red')
 
-            # Try to expand from each
-            for edge in edges:
-                if self.expand_triangle(edge):
-                    self.update_visualizer(color='green')
-                    break
+            # Try to expand from each edge.
+            while edges and counter < limit_iterations:
+                counter += 1
 
-    def expand_triangle(self, edge: Edge) -> bool:
+                # Try the first one
+                e1, e2 = self.expand_triangle(edges[0])
+
+                if e1 is not None and e2 is not None:
+                    self.update_visualizer(color='green')
+                    edges = [e1, e2]
+                else: # If we can't expand from the first, try the second one.
+                    e1, e2 = self.expand_triangle(edges[1])
+
+                    if e1 is not None and e2 is not None:
+                        self.update_visualizer(color='green')
+                        edges = [e1, e2]
+                    else:
+                        break
+            else:
+                times_failed_to_expand_from_new_seed += 1
+
+    def expand_triangle(self, edge: Edge) -> (Edge, Edge):
         # Avoid duplications.
         intersect_cells = list(set(edge.p1.neighbor_nodes) & set(edge.p2.neighbor_nodes))
         possible_points = []
-        idx = 0
+        index = 0
 
         p1, p2 = edge.p1, edge.p2
 
         for cell in intersect_cells:
             possible_points.extend(self.grid.get_cell_points(cell))
 
-        for idx, point in enumerate(possible_points):
+        # Sort points by distance from p1 and p2.
+        dists_p1 = [utils.calc_distance(p1, p3) for p3 in possible_points]
+        dists_p2 = [utils.calc_distance(p2, p3) for p3 in possible_points]
+        dists = [min(dists_p1[i], dists_p2[i]) for i in range(len(dists_p1))]
 
-            if point.id == p1.id or point.id == p2.id:
+        possible_points = [x for _, x in sorted(zip(dists_p2, possible_points))]
+
+        for index, p3 in enumerate(possible_points):
+
+            if p3.id == p1.id or p3.id == p2.id:
                 continue
 
-            p1_and_point_already_connected = len([e for e in self.grid.edges if (e.p1.id == p1.id)
-                                                  and (e.p2.id == point.id)]) > 0
-            p2_and_point_already_connected = len([e for e in self.grid.edges if (e.p1.id == p2.id)
-                                                  and (e.p2.id == point.id)]) > 0
+            if p3 not in self.points:
+                continue
 
-            if p1_and_point_already_connected or p2_and_point_already_connected:
+            p1_and_p3_already_connected = len([e for e in self.grid.edges if (e.p1.id == p1.id)
+                                                  and (e.p2.id == p3.id)]) > 0
+            p2_and_p3_already_connected = len([e for e in self.grid.edges if (e.p1.id == p2.id)
+                                                  and (e.p2.id == p3.id)]) > 0
+
+            if p1_and_p3_already_connected or p2_and_p3_already_connected:
                 continue
 
             # If a sphere's radius is smaller than the radius of the incircle of a triangle, the sphere can fit into the
             # triangle.
-            if self.radius <= utils.calc_incircle_radius(p1, p2, point):
+            if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
+                # Calculate triangle's normal.
+                v1 = [p1.x - p2.x, p1.y - p2.y, p1.z - p2.z]
+                v2 = [p1.x - p3.x, p1.y - p3.y, p1.z - p3.z]
+                triangle_normal = np.cross(v1, v2)
+
+                # Check if the normal of the triangle is on the same direction with all 3 points normals.
+                if np.dot(triangle_normal, p1.normal) < 0 or np.dot(triangle_normal, p2.normal) < 0 or \
+                        np.dot(triangle_normal, p3.normal) < 0:
+                    continue
+
                 # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
-                self.points.remove(point)
-                self.points.insert(len(self.points), point)
+                #self.points.remove(p3)
                 self.num_free_points = self.num_free_points - 1
 
-                self.grid.add_edge(Edge(p1, point))
-                self.grid.add_edge(Edge(p2, point))
-                return True
-        else: # Might not be trivial: Python has for/else structure...
-            # If we can't keep going from this edge, remove it.
-            if idx == len(possible_points)-1:
-                self.grid.remove_edge(edge)
-                return False
+                # We got new our edges!
+                e1 = Edge(p1, p3)
+                e2 = Edge(p2, p3)
+
+                self.grid.add_edge(e1)
+                self.grid.add_edge(e2)
+                return e1, e2
+
+        # If we can't keep going from this edge, remove it.
+        if index == len(possible_points)-1:
+            self.grid.remove_edge(edge)
+            return None, None
