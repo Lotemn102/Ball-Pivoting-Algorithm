@@ -1,4 +1,6 @@
 import random
+import threading
+import concurrent.futures
 
 from grid import Grid
 from point import Point
@@ -39,7 +41,7 @@ class BPA:
         vis.create_window()
         vis.add_geometry(pcd)
         return vis
-
+    '''
     def update_visualizer(self, color='red'):
         """
         Updating only the edges (assuming points don't change).
@@ -60,7 +62,6 @@ class BPA:
                 edge.color = c
 
         colors = [edge.color for edge in self.grid.edges]
-        #colors = [c for _ in range(len(lines))]
         line_set = o3d.geometry.LineSet()
         points = np.array([(point.x, point.y, point.z) for point in self.const_points])
         line_set.points = o3d.Vector3dVector(points)
@@ -68,6 +69,41 @@ class BPA:
         line_set.colors = o3d.utility.Vector3dVector(colors)
 
         self.vis.add_geometry(line_set)
+        self.vis.update_geometry()
+        self.vis.poll_events()
+        self.vis.update_renderer()
+    '''
+
+    def update_visualizer(self, color='red'):
+        """
+        Updating only the edges (assuming points don't change).
+
+        :return: None
+        """
+        if color == 'red':
+            c = [1, 0, 0]
+        elif color == 'green':
+            c = [0, 1, 0]
+        else:
+            c = [0, 0, 1]
+
+        triangles = []
+
+        for triangle in self.grid.triangles:
+            index_1 = self.points.index(triangle[0])
+            index_2 = self.points.index(triangle[1])
+            index_3 = self.points.index(triangle[2])
+            triangles.append([index_1, index_2, index_3])
+
+        triangles = np.asarray(triangles).astype(np.int32)
+        points = np.array([(point.x, point.y, point.z) for point in self.points])
+
+        mesh = o3d.TriangleMesh()
+        mesh.vertices = o3d.Vector3dVector(points)
+        mesh.triangles = o3d.Vector3iVector(np.array(triangles))
+        mesh.paint_uniform_color(c)
+
+        self.vis.add_geometry(mesh)
         self.vis.update_geometry()
         self.vis.poll_events()
         self.vis.update_renderer()
@@ -144,7 +180,9 @@ class BPA:
                 possible_points.extend(self.grid.get_cell_points(cell))
 
             # Sort points by distance from p2.
-            dists = [utils.calc_distance(p2, p3) for p3 in possible_points]
+            dists_p2 = [utils.calc_distance(p2, p3) for p3 in possible_points]
+            dist_p1 = [utils.calc_distance(p1, p3) for p3 in possible_points]
+            dists = [dist_p1[i] + dists_p2[i] for i in range(len(dist_p1))]
             possible_points = [x for _, x in sorted(zip(dists, possible_points))]
 
             for i, p3 in enumerate(possible_points):
@@ -176,7 +214,10 @@ class BPA:
                     self.grid.edges.append(e2)
                     self.grid.edges.append(e3)
 
+                    self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, e3.p1, e3.p2}))
+
                     # Move the points to the end of the list.
+                    '''
                     self.points.remove(p1)
                     self.points.insert(len(self.points), p1)
                     self.num_free_points = self.num_free_points - 1
@@ -188,6 +229,11 @@ class BPA:
                     self.points.remove(p3)
                     self.points.insert(len(self.points), p3)
                     self.num_free_points = self.num_free_points - 1
+                    '''
+                    p1.is_used = True
+                    p2.is_used = True
+                    p3.is_used = True
+
                     return 1, (e1, e2, e3)
 
         # Else, find another free point and start over.
@@ -198,9 +244,9 @@ class BPA:
 
     def create_mesh(self, limit_iterations=float('inf')):
         times_failed_to_expand_from_new_seed = 0
-        counter = 0
+        tried_to_expand_counter = 0
 
-        while 1 and counter < limit_iterations:
+        while 1 and tried_to_expand_counter < limit_iterations:
             if times_failed_to_expand_from_new_seed > 2:
                 return
 
@@ -210,27 +256,17 @@ class BPA:
             self.update_visualizer(color='red')
 
             # Try to expand from each edge.
-            while edges and counter < limit_iterations:
-                counter += 1
-
-                # Pick randomly the edge to start with
-                rand = random.randint(1, 10)
-
-                if rand % 2 == 0:
-                    i = 0
-                    j = 1
-                else:
-                    i = 1
-                    j = 0
+            while edges and tried_to_expand_counter < limit_iterations:
+                tried_to_expand_counter += 1
 
                 # Try the first one
-                e1, e2 = self.expand_triangle(edges[i])
+                e1, e2 = self.expand_triangle(edges[0])
 
                 if e1 is not None and e2 is not None:
                     self.update_visualizer(color='green')
                     edges = [e1, e2]
                 else: # If we can't expand from the first, try the second one.
-                    e1, e2 = self.expand_triangle(edges[j])
+                    e1, e2 = self.expand_triangle(edges[1])
 
                     if e1 is not None and e2 is not None:
                         self.update_visualizer(color='green')
@@ -239,6 +275,8 @@ class BPA:
                         break
             else:
                 times_failed_to_expand_from_new_seed += 1
+
+        self.lock_visualizer()
 
     def expand_triangle(self, edge: Edge) -> (Edge, Edge):
         # Avoid duplications.
@@ -254,7 +292,8 @@ class BPA:
         # Sort points by distance from p1 and p2.
         dists_p1 = [utils.calc_distance(p1, p3) for p3 in possible_points]
         dists_p2 = [utils.calc_distance(p2, p3) for p3 in possible_points]
-        dists = [min(dists_p1[i], dists_p2[i]) for i in range(len(dists_p1))]
+        dists = [dists_p1[i] + dists_p2[i] for i in range(len(dists_p1))]
+        #dists = [min(dists_p1[i], dists_p2[i]) for i in range(len(dists_p1))]
 
         possible_points = [x for _, x in sorted(zip(dists, possible_points))]
 
@@ -288,8 +327,9 @@ class BPA:
                     continue
 
                 # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
-                self.points.remove(p3)
-                self.num_free_points = self.num_free_points - 1
+                #self.points.remove(p3)
+                #self.num_free_points = self.num_free_points - 1
+                p3.is_used = True
 
                 # We got new our edges!
                 e1 = Edge(p1, p3)
@@ -297,6 +337,8 @@ class BPA:
 
                 self.grid.add_edge(e1)
                 self.grid.add_edge(e2)
+
+                self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, edge.p1, edge.p2}))
                 return e1, e2
 
         # If we can't keep going from this edge, remove it.
