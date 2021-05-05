@@ -1,7 +1,8 @@
 import math
+import numpy as np
 
 
-def calc_distance(p1, p2):
+def calc_distance_points(p1, p2):
     """
     Calculate the distance between 2 3D points.
 
@@ -10,6 +11,13 @@ def calc_distance(p1, p2):
     :return: Distance between the points.
     """
     return math.sqrt(math.pow((p2.x - p1.x), 2) + math.pow((p2.y - p1.y), 2) + math.pow((p2.z - p1.z), 2))
+
+
+def calc_distance_point_to_edge(point, edge):
+    # https://math.stackexchange.com/q/1905581
+    v1 = [edge.p1.x - edge.p2.x, edge.p1.y - edge.p2.y, edge.p1.z - edge.p2.z]
+    v2 = [point.x - edge.p1.x, point.y - edge.p1.y, point.z - edge.p2.z]
+    return np.linalg.norm(np.cross(v1, v2)) / np.linalg.norm(v1)
 
 
 def calc_incircle_radius(p1, p2, p3):
@@ -24,9 +32,9 @@ def calc_incircle_radius(p1, p2, p3):
     :return: The radius of the incircle.
     """
 
-    edge_1_length = calc_distance(p1, p2)
-    edge_2_length = calc_distance(p2, p3)
-    edge_3_length = calc_distance(p1, p3)
+    edge_1_length = calc_distance_points(p1, p2)
+    edge_2_length = calc_distance_points(p2, p3)
+    edge_3_length = calc_distance_points(p1, p3)
 
     s = (edge_1_length + edge_2_length + edge_3_length) / 2
     r = math.sqrt(((s - edge_1_length)*(s - edge_2_length)*(s - edge_3_length)) / s)
