@@ -18,4 +18,7 @@ https://www.ipol.im/pub/art/2014/81/article.pdf
 http://www.sci.utah.edu/~csilva/papers/tvcg99.pdf
 
 ## TODO
-- Check if we can easily add edges to point in the point cloud using Open3d.
+- ~~Check if we can easily add edges to point in the point cloud using Open3d.~~
+- Fix the overlapping triangles - If a point is the same direction as if the third point in the triangle we expand, don't take it!
+- "Circle triangulation" update the number of the triangles the last edge is in.
+
