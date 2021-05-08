@@ -15,9 +15,9 @@ def calc_distance_points(p1, p2):
 
 def calc_distance_point_to_edge(point, edge):
     # https://math.stackexchange.com/q/1905581
-    v1 = [edge.p1.x - edge.p2.x, edge.p1.y - edge.p2.y, edge.p1.z - edge.p2.z]
-    v2 = [point.x - edge.p1.x, point.y - edge.p1.y, point.z - edge.p2.z]
-    return np.linalg.norm(np.cross(v1, v2)) / np.linalg.norm(v1)
+    v1 = [edge.p1.x - point.x, edge.p1.y - point.y, edge.p1.z - point.z]
+    v2 = [edge.p1.x - edge.p2.x, edge.p1.y - edge.p2.y, edge.p1.z - edge.p2.z]
+    return np.linalg.norm(np.cross(v1, v2)) / np.linalg.norm(v2)
 
 
 def calc_incircle_radius(p1, p2, p3):

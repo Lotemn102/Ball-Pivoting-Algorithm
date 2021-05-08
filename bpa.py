@@ -314,6 +314,7 @@ class BPA:
 
                 while i < len(edges) and tried_to_expand_counter < limit_iterations:
                     e1, e2 = self.expand_triangle(edges[i], edges)
+                    tried_to_expand_counter += 1
 
                     if e1 is not None and e2 is not None:
                         self.update_visualizer(color='green')
@@ -321,12 +322,11 @@ class BPA:
                         #i = 0
                     else:
                         i += 1
-                        tried_to_expand_counter += 1
                         continue
             else:
                 times_failed_to_expand_from_new_seed += 1
 
-    def show_me_what_the_edge_see(self, edge, sorted_points):
+    def show_me_what_the_edge_see(self, edges, sorted_points):
         self.vis.close()
         pcd = o3d.geometry.PointCloud()
         points = np.array([(point.x, point.y, point.z) for point in sorted_points])
@@ -342,7 +342,10 @@ class BPA:
         vis.create_window()
         vis.add_geometry(pcd)
 
-        lines = [[edge.p1.id, edge.p2.id]]
+        lines = []
+
+        for edge in edges:
+            lines.append([edge.p1.id, edge.p2.id])
         line_set = o3d.geometry.LineSet()
         points = np.array([(point.x, point.y, point.z) for point in sorted_points])
         line_set.points = o3d.Vector3dVector(points)
@@ -362,12 +365,12 @@ class BPA:
                 possible_points.extend(self.grid.get_cell_points(cell))
 
             # Sort points by distance from p1 and p2.
-            dists_p1 = [utils.calc_distance_points(p1, p3) for p3 in possible_points]
-            dists_p2 = [utils.calc_distance_points(p2, p3) for p3 in possible_points]
-            dists = [dists_p1[i] + dists_p2[i] for i in range(len(dists_p1))]
+            dists_p1 = [round(utils.calc_distance_points(p1, p3), 2) for p3 in possible_points]
+            dists_p2 = [round(utils.calc_distance_points(p2, p3), 2) for p3 in possible_points]
+            dists = [round(dists_p1[i] + dists_p2[i], 2) for i in range(len(dists_p1))]
 
             sorted_possible_points = [x for _, x in sorted(zip(dists, possible_points))]
-            self.show_me_what_the_edge_see(edge, sorted_possible_points[:6])
+            self.show_me_what_the_edge_see(edges, sorted_possible_points[:5])
 
             for index, p3 in enumerate(sorted_possible_points):
                 if p3.id == p1.id or p3.id == p2.id:
@@ -378,10 +381,10 @@ class BPA:
 
                 # Is there an edge in the triangle i'm expanding that is closer to the closest point i've found? If so,
                 # this triangle might cause intersection.
-
                 is_there_a_closer_edge_to_p3 = False
 
                 for triangle_edge in edges:
+                    t = utils.calc_distance_point_to_edge(point=sorted_possible_points[index], edge=triangle_edge)
                     if utils.calc_distance_point_to_edge(point=sorted_possible_points[index],
                                                          edge=triangle_edge) < utils. \
                             calc_distance_point_to_edge(point=sorted_possible_points[index], edge=edge):
