@@ -14,6 +14,7 @@ class Grid:
         self.num_cells_per_axis = 0
         self.bounding_box_size = 0
         self.edges = []
+        self.triangles = []
         self.cell_size = 0
 
         if points is not None:

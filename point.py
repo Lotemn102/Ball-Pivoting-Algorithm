@@ -9,9 +9,10 @@ class Point:
         self.cell_code = None
         self.normal = normal
         self.id = id
+        self.is_used = False
 
     def __lt__(self, other):
-        return self.x < other.x
+        return self.z <= other.z
 
     @property
     def neighbor_nodes(self):

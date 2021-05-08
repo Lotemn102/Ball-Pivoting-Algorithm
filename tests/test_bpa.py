@@ -101,13 +101,12 @@ class TestBPA(unittest.TestCase):
         edges = bpa.grid.edges
         bpa.expand_triangle(edges[0])
         bpa.update_visualizer(color='green')
-
         bpa.vis.run()
 
     def test_create_mesh(self):
         # Load data.
-        bpa = BPA(path='teapot_with_normals.txt', radius=0.002, visualizer=True)
-        #bpa.create_mesh(limit_iterations=3)
+        bpa = BPA(path='large_bunny_with_normals.txt', radius=0.001, visualizer=True)
+        bpa.create_mesh(limit_iterations=2)
         bpa.lock_visualizer()
 
 
