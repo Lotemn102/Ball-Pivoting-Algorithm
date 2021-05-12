@@ -43,38 +43,6 @@ class BPA:
         vis.create_window()
         vis.add_geometry(pcd)
         return vis
-    '''
-    def update_visualizer(self, color='red'):
-        """
-        Updating only the edges (assuming points don't change).
-
-        :return: None
-        """
-        if color == 'red':
-            c = [1, 0, 0]
-        elif color == 'green':
-            c = [0, 1, 0]
-        else:
-            c = [0, 0, 1]
-
-        lines = [[edge.p1.id, edge.p2.id] for edge in self.grid.edges]
-
-        for edge in self.grid.edges:
-            if edge.color == []:
-                edge.color = c
-
-        colors = [edge.color for edge in self.grid.edges]
-        line_set = o3d.geometry.LineSet()
-        points = np.array([(point.x, point.y, point.z) for point in self.const_points])
-        line_set.points = o3d.Vector3dVector(points)
-        line_set.lines = o3d.utility.Vector2iVector(lines)
-        line_set.colors = o3d.utility.Vector3dVector(colors)
-
-        self.vis.add_geometry(line_set)
-        self.vis.update_geometry()
-        self.vis.poll_events()
-        self.vis.update_renderer()
-    '''
 
     def update_visualizer(self, color='red'):
         """
@@ -177,7 +145,7 @@ class BPA:
         for cell in p1.neighbor_nodes:
             p1_neighbor_points.extend(self.grid.get_cell_points(cell))
 
-        # TODO: Don't know why i append all points twice in the previous loop?
+        # TODO: Don't know why it appends all points twice in the previous loop?
         p1_neighbor_points = set(p1_neighbor_points)
 
         # Sort points by distance from p1.
@@ -219,12 +187,11 @@ class BPA:
                 if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
                     # Calculate triangle's normal.
                     v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
-                    v2 = [p1.x - p3.x, p1.y - p3.y, p1.z - p3.z]
+                    v2 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
                     triangle_normal = np.cross(v1, v2)
 
                     # Check if the normal of the triangle is on the same direction with all 3 points normals.
-                    if np.dot(triangle_normal, p1.normal) < 0 or np.dot(triangle_normal, p2.normal) < 0 or \
-                        np.dot(triangle_normal, p3.normal) < 0:
+                    if np.dot(triangle_normal, p1.normal) < 0:
                         continue
 
                     # Check if two of the points are already connected.
@@ -245,27 +212,59 @@ class BPA:
                     if len(p1_and_p3_already_connected) > 0:
                         # Find the single edge they are connected with.
                         e1 = p1_and_p3_already_connected[0]
+
+                        if e1.num_triangles_this_edge_is_in >= 1:
+                            break
+
+                        e1.num_triangles_this_edge_is_in += 1
+
                     if len(p1_and_p2_already_connected) > 0:
                         # Find the single edge they are connected with.
-                        e2 = p1_and_p3_already_connected[0]
+                        e2 = p1_and_p2_already_connected[0]
+
+                        if e2.num_triangles_this_edge_is_in >= 1:
+                            break
+
+                        e2.num_triangles_this_edge_is_in += 1
+
                     if len(p2_and_p3_already_connected) > 0:
                         # Find the single edge they are connected with.
                         e3 = p2_and_p3_already_connected[0]
 
+                        if e3.num_triangles_this_edge_is_in >= 1:
+                            break
+
+                        e3.num_triangles_this_edge_is_in += 1
+
+                    # Check if one of the new edges might close another triangle in the mesh.
+                    are_p1_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p1, p3)
+                    are_p2_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p2, p3)
+                    are_p1_p2_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p1, p2)
+
                     if e1 is None:
                         e1 = Edge(p1, p3)
+                        e1.num_triangles_this_edge_is_in += 1
+
+                        if are_p1_p3_closing_another_triangle_in_the_mesh:
+                            e1.num_triangles_this_edge_is_in += 1
+
+                        self.grid.edges.append(e1)
                     if e2 is None:
                         e2 = Edge(p1, p2)
+                        e2.num_triangles_this_edge_is_in += 1
+
+                        if are_p1_p2_closing_another_triangle_in_the_mesh:
+                            e2.num_triangles_this_edge_is_in += 1
+
+                        self.grid.edges.append(e2)
                     if e3 is None:
                         e3 = Edge(p2, p3)
+                        e3.num_triangles_this_edge_is_in += 1
 
-                    e1.num_triangles_this_edge_is_in += 1
-                    e2.num_triangles_this_edge_is_in += 1
-                    e3.num_triangles_this_edge_is_in += 1
+                        if are_p2_p3_closing_another_triangle_in_the_mesh:
+                            e3.num_triangles_this_edge_is_in += 1
 
-                    self.grid.edges.append(e1)
-                    self.grid.edges.append(e2)
-                    self.grid.edges.append(e3)
+                        self.grid.edges.append(e3)
 
                     self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, e3.p1, e3.p2}))
 
@@ -299,35 +298,32 @@ class BPA:
         tried_to_expand_counter = 0
 
         while 1 and tried_to_expand_counter < limit_iterations:
-            if times_failed_to_expand_from_new_seed > 2:
-                return
-
             # Find a seed triangle.
             _, edges = self.find_seed_triangle()
+
+            if edges is None:
+                return
+
             print("new seed!")
             self.update_visualizer(color='red')
 
+            tried_to_expand_counter += 1
+            i = 0
+
             # Try to expand from each edge.
-            while edges and tried_to_expand_counter < limit_iterations:
+            while i < len(edges) and tried_to_expand_counter < limit_iterations:
+                e1, e2 = self.expand_triangle(edges[i], edges, False)
                 tried_to_expand_counter += 1
-                i = 0
 
-                while i < len(edges) and tried_to_expand_counter < limit_iterations:
-                    e1, e2 = self.expand_triangle(edges[i], edges, False)
-                    tried_to_expand_counter += 1
-
-                    if e1 is not None and e2 is not None:
-                        if tried_to_expand_counter >= 7:
-                            self.update_visualizer(color='blue')
-                        else:
-                            self.update_visualizer(color='green')
-                        edges = [e1, e2]
-                        i = 0
+                if e1 is not None and e2 is not None:
+                    if tried_to_expand_counter >= limit_iterations:
+                        self.update_visualizer(color='blue')
                     else:
-                        i += 1
-                        continue
-            else:
-                times_failed_to_expand_from_new_seed += 1
+                        self.update_visualizer(color='green')
+                    edges = [e1, e2]
+                    i = 0
+                else:
+                    i += 1
 
     def show_me_what_the_edge_see(self, edges, sorted_points):
         self.vis.close()
@@ -382,6 +378,80 @@ class BPA:
 
         return third_point
 
+    def find_triangles_by_edge(self, edge):
+        possible_triangles = []
+
+        for triangle in self.grid.triangles:
+            if edge.p1 in triangle and edge.p2 in triangle:
+                third_point = [p for p in triangle if p.id != edge.p1.id and p.id != edge.p2.id]
+
+                if len(third_point) > 0:
+                    third_point = third_point[0]
+                    possible_triangles.append([edge.p1, edge.p2, third_point])
+
+        return possible_triangles
+
+    def is_there_a_path_between_two_points(self, p1, p2):
+        edges_first_point_int = []
+        edges_second_point_int = []
+        points_first_edges = []
+        points_second_edges = []
+
+        for e in self.grid.edges:
+            if p1.id == e.p1.id or p1.id == e.p2.id:
+                edges_first_point_int.append(e)
+
+            if p2.id == e.p1.id or p2.id == e.p2.id:
+                edges_second_point_int.append(e)
+
+        for e in edges_first_point_int:
+            points_first_edges.append(e.p1.id)
+            points_first_edges.append(e.p2.id)
+
+        for e in edges_second_point_int:
+            points_second_edges.append(e.p1.id)
+            points_second_edges.append(e.p2.id)
+
+        points_first_edges = set(points_first_edges)
+
+        if p1.id in points_first_edges:
+            points_first_edges.remove(p1.id)
+
+        points_second_edges = set(points_second_edges)
+
+        if p2.id in points_second_edges:
+            points_second_edges.remove(p2.id)
+
+        intersection = set(points_first_edges & points_second_edges)
+
+        return len(intersection) > 0
+
+    @staticmethod
+    def will_triangles_overlap(edge, p3, p4):
+        """
+        Check if a triangle defined by the 2 points of "edge" and a point p3, will overlap  a triangle defined by
+        2 points of "edge" and a point p4.
+
+        :return:
+        """
+        p1, p2 = edge.p1, edge.p2
+
+        # The following section checks if p3 is the same side of the edge as the third point of the rectangle
+        # we are expanding. If so - keep searching, so we won't have overlapping triangles in the mesh.
+        # Calculate the normal of the triangle
+        v1 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
+        v2 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
+        triangle_normal = np.cross(v1, v2)
+
+        # Calculate the normal to the plane defined by v2 and the triangle_normal (the plane orthogonal to
+        # the triangle).
+        plane_normal = np.cross(v2, triangle_normal)
+
+        # Check if p3 is in the same side of the plane as the third point.
+        v3 = [p4.x - p1.x, p4.y - p1.y, p4.z - p1.z]
+
+        return np.sign(np.dot(plane_normal, v1)) == np.sign(np.dot(plane_normal, v3))
+
     def expand_triangle(self, edge: Edge, edges: List[Edge], debug_flag) -> (Edge, Edge):
         if edge.num_triangles_this_edge_is_in < 2:
             # Avoid duplications.
@@ -398,6 +468,11 @@ class BPA:
             dists = self.get_points_distances_from_edge(possible_points, p1, p2)
             sorted_possible_points = [x for _, x in sorted(zip(dists, possible_points))]
 
+            # For better performance. If we couldn't find a close point to expand to, it's better just to find new
+            # seed than getting a far point.
+            LIMIT_POINTS = 10
+            sorted_possible_points = sorted_possible_points[:LIMIT_POINTS]
+
             if debug_flag:
                 self.show_me_what_the_edge_see(edges, sorted_possible_points[:4])
 
@@ -405,20 +480,7 @@ class BPA:
                 if p3.id == p1.id or p3.id == p2.id or p3.id == third_point_of_triangle_we_expand:
                     continue
 
-                if p3 not in self.points:
-                    continue
-
-                v1 = [p1.x - third_point_of_triangle_we_expand.x, p1.y - third_point_of_triangle_we_expand.y,
-                      p1.z - third_point_of_triangle_we_expand.z]
-                v2 = [p1.x - p3.x, p1.y - p3.y, p1.z - p3.z]
-
-                v3 = [p2.x - third_point_of_triangle_we_expand.x, p2.y - third_point_of_triangle_we_expand.y,
-                      p2.z - third_point_of_triangle_we_expand.z]
-                v4 = [p2.x - p3.x, p2.y - p3.y, p2.z - p3.z]
-
-                # Check if p3 is the same side of the edge as the third point of the rectangle we are expanding. If
-                # so - keep searching, so we won't have overlapping triangles in the mesh.
-                if np.dot(v1, v2) > 0 and np.dot(v3, v4) > 0:
+                if self.will_triangles_overlap(edge, third_point_of_triangle_we_expand, p3):
                     continue
 
                 # If a sphere's radius is smaller than the radius of the incircle of a triangle, the sphere can fit into
@@ -426,16 +488,12 @@ class BPA:
                 if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
                     # Calculate new triangle's normal.
                     v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
-                    v2 = [p1.x - p3.x, p1.y - p3.y, p1.z - p3.z]
-                    triangle_normal = np.cross(v1, v2)
+                    v2 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
+                    new_triangle_normal = np.cross(v1, v2)
 
-                    # Check if the normal of the triangle is on the same direction with all 3 points normals.
-                    #if np.dot(triangle_normal, p1.normal) < 0 or np.dot(triangle_normal, p2.normal) < 0 or \
-                    #        np.dot(triangle_normal, p3.normal) < 0:
-                    #    continue
-
-                    # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
-                    p3.is_used = True
+                    # Check if the normal of the triangle is on the same direction with other points normals.
+                    if np.dot(new_triangle_normal, p1.normal) < 0 and np.dot(new_triangle_normal, p2.normal) < 0:
+                        continue
 
                     e1 = None
                     e2 = None
@@ -454,21 +512,66 @@ class BPA:
                     if len(p1_and_p3_already_connected) > 0:
                         # Find the single edge they are connected with.
                         e1 = p1_and_p3_already_connected[0]
+
+                        if e1.num_triangles_this_edge_is_in >= 2:
+                            continue
+
+                        # Make sure that if the edge they are already connected with is part of the triangle, the new
+                        # triangle will not overlap
+                        # TODO: Continue this part
+                        '''
+                        triangles = self.find_triangles_by_edge(e1)
+
+                        if len(triangles) >= 2:
+                            continue
+                        else:
+                            third_point_of_triangle = [p for p in triangles[0] if p.id != p1.id and p.id != p3.id][0]
+                            if self.will_triangles_overlap(e1, third_point_of_triangle, p2):
+                                continue
+                        '''
+
                         e1.num_triangles_this_edge_is_in += 1
+
                     if len(p2_and_p3_already_connected) > 0:
                         # Find the single edge they are connected with.
                         e2 = p2_and_p3_already_connected[0]
+
+                        if e2.num_triangles_this_edge_is_in >= 2:
+                            continue
+
                         e2.num_triangles_this_edge_is_in += 1
 
+                    # Check if one of the new edges might close another triangle in the mesh.
+                    are_p1_p3_closing_another_triangle_in_the_mesh = False
+                    are_p2_p3_closing_another_triangle_in_the_mesh = False
+
+                    if p3.is_used:
+                        are_p1_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p1, p3)
+                        are_p2_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p2, p3)
+
+                    # Update that the edge we expand is now part of the triangle.
                     edge.num_triangles_this_edge_is_in += 1
+
+                    # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
+                    p3.is_used = True
 
                     if e1 is None:
                         e1 = Edge(p1, p3)
                         e1.num_triangles_this_edge_is_in += 1
+
+                        if are_p1_p3_closing_another_triangle_in_the_mesh:
+                            e1.num_triangles_this_edge_is_in += 1
+                            pass
+
                         self.grid.add_edge(e1)
                     if e2 is None:
                         e2 = Edge(p2, p3)
-                        e1.num_triangles_this_edge_is_in += 1
+                        e2.num_triangles_this_edge_is_in += 1
+
+                        if are_p2_p3_closing_another_triangle_in_the_mesh:
+                            e2.num_triangles_this_edge_is_in += 1
+                            pass
+
                         self.grid.add_edge(e2)
 
                     self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, edge.p1, edge.p2}))

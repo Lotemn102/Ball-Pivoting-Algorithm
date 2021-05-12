@@ -105,8 +105,14 @@ class TestBPA(unittest.TestCase):
 
     def test_create_mesh(self):
         # Load data.
-        bpa = BPA(path='large_bunny_with_normals.txt', radius=0.01, visualizer=True)
-        bpa.create_mesh(limit_iterations=8)
+        bpa = BPA(path='large_bunny_with_normals.txt', radius=0.005, visualizer=True)
+        bpa.create_mesh(limit_iterations=105)
+        bpa.lock_visualizer()
+
+    def test_small_bunny(self):
+        # Load data.
+        bpa = BPA(path='bunny_with_normals.txt', radius=0.0005, visualizer=True)
+        bpa.create_mesh(limit_iterations=900)
         bpa.lock_visualizer()
 
 
