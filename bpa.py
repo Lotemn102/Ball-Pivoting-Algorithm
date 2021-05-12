@@ -313,13 +313,16 @@ class BPA:
                 i = 0
 
                 while i < len(edges) and tried_to_expand_counter < limit_iterations:
-                    e1, e2 = self.expand_triangle(edges[i], edges)
+                    e1, e2 = self.expand_triangle(edges[i], edges, False)
                     tried_to_expand_counter += 1
 
                     if e1 is not None and e2 is not None:
-                        self.update_visualizer(color='green')
+                        if tried_to_expand_counter >= 7:
+                            self.update_visualizer(color='blue')
+                        else:
+                            self.update_visualizer(color='green')
                         edges = [e1, e2]
-                        #i = 0
+                        i = 0
                     else:
                         i += 1
                         continue
@@ -353,62 +356,89 @@ class BPA:
         vis.add_geometry(line_set)
         vis.run()
 
-    def expand_triangle(self, edge: Edge, edges: List[Edge]) -> (Edge, Edge):
+    @staticmethod
+    def get_points_distances_from_edge(points, p1, p2):
+        dists_p1 = [round(utils.calc_distance_points(p1, p3), 2) for p3 in points]
+        dists_p2 = [round(utils.calc_distance_points(p2, p3), 2) for p3 in points]
+        dists = [round(dists_p1[i] + dists_p2[i], 2) for i in range(len(dists_p1))]
+        return dists
+
+    @staticmethod
+    def get_third_point_of_triangle(triangle_edges, p1, p2):
+        triangle_points = []
+        third_point = None
+
+        for triangle_edge in triangle_edges:
+            first_point, second_point = triangle_edge.p1, triangle_edge.p2
+            triangle_points.append(first_point)
+            triangle_points.append(second_point)
+
+        triangle_points = set(triangle_points)
+
+        for point in triangle_points:
+            if point.id != p1.id and point.id != p2.id:
+                third_point = point
+                break
+
+        return third_point
+
+    def expand_triangle(self, edge: Edge, edges: List[Edge], debug_flag) -> (Edge, Edge):
         if edge.num_triangles_this_edge_is_in < 2:
             # Avoid duplications.
             intersect_cells = list(set(edge.p1.neighbor_nodes) & set(edge.p2.neighbor_nodes))
             possible_points = []
 
             p1, p2 = edge.p1, edge.p2
+            third_point_of_triangle_we_expand = self.get_third_point_of_triangle(edges, p1, p2)
 
             for cell in intersect_cells:
                 possible_points.extend(self.grid.get_cell_points(cell))
 
             # Sort points by distance from p1 and p2.
-            dists_p1 = [round(utils.calc_distance_points(p1, p3), 2) for p3 in possible_points]
-            dists_p2 = [round(utils.calc_distance_points(p2, p3), 2) for p3 in possible_points]
-            dists = [round(dists_p1[i] + dists_p2[i], 2) for i in range(len(dists_p1))]
-
+            dists = self.get_points_distances_from_edge(possible_points, p1, p2)
             sorted_possible_points = [x for _, x in sorted(zip(dists, possible_points))]
-            self.show_me_what_the_edge_see(edges, sorted_possible_points[:5])
+
+            if debug_flag:
+                self.show_me_what_the_edge_see(edges, sorted_possible_points[:4])
 
             for index, p3 in enumerate(sorted_possible_points):
-                if p3.id == p1.id or p3.id == p2.id:
+                if p3.id == p1.id or p3.id == p2.id or p3.id == third_point_of_triangle_we_expand:
                     continue
 
                 if p3 not in self.points:
                     continue
 
-                # Is there an edge in the triangle i'm expanding that is closer to the closest point i've found? If so,
-                # this triangle might cause intersection.
-                is_there_a_closer_edge_to_p3 = False
+                v1 = [p1.x - third_point_of_triangle_we_expand.x, p1.y - third_point_of_triangle_we_expand.y,
+                      p1.z - third_point_of_triangle_we_expand.z]
+                v2 = [p1.x - p3.x, p1.y - p3.y, p1.z - p3.z]
 
-                for triangle_edge in edges:
-                    t = utils.calc_distance_point_to_edge(point=sorted_possible_points[index], edge=triangle_edge)
-                    if utils.calc_distance_point_to_edge(point=sorted_possible_points[index],
-                                                         edge=triangle_edge) < utils. \
-                            calc_distance_point_to_edge(point=sorted_possible_points[index], edge=edge):
-                        is_there_a_closer_edge_to_p3 = True
-                        break
+                v3 = [p2.x - third_point_of_triangle_we_expand.x, p2.y - third_point_of_triangle_we_expand.y,
+                      p2.z - third_point_of_triangle_we_expand.z]
+                v4 = [p2.x - p3.x, p2.y - p3.y, p2.z - p3.z]
 
-                if is_there_a_closer_edge_to_p3:
+                # Check if p3 is the same side of the edge as the third point of the rectangle we are expanding. If
+                # so - keep searching, so we won't have overlapping triangles in the mesh.
+                if np.dot(v1, v2) > 0 and np.dot(v3, v4) > 0:
                     continue
 
                 # If a sphere's radius is smaller than the radius of the incircle of a triangle, the sphere can fit into
                 # the triangle.
                 if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
-                    # Calculate triangle's normal.
-                    v1 = [p1.x - p2.x, p1.y - p2.y, p1.z - p2.z]
+                    # Calculate new triangle's normal.
+                    v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
                     v2 = [p1.x - p3.x, p1.y - p3.y, p1.z - p3.z]
                     triangle_normal = np.cross(v1, v2)
 
                     # Check if the normal of the triangle is on the same direction with all 3 points normals.
-                    if np.dot(triangle_normal, p1.normal) < 0 or np.dot(triangle_normal, p2.normal) < 0 or \
-                            np.dot(triangle_normal, p3.normal) < 0:
-                        continue
+                    #if np.dot(triangle_normal, p1.normal) < 0 or np.dot(triangle_normal, p2.normal) < 0 or \
+                    #        np.dot(triangle_normal, p3.normal) < 0:
+                    #    continue
 
                     # Update that 'point' is not free anymore, so it won't be accidentally chosen in the seed search.
                     p3.is_used = True
+
+                    e1 = None
+                    e2 = None
 
                     p1_and_p3_already_connected = [e for e in self.grid.edges if ((e.p1.id == p1.id)
                                                        and (e.p2.id == p3.id)) or ((e.p1.id == p3.id)
@@ -416,8 +446,6 @@ class BPA:
                     p2_and_p3_already_connected = [e for e in self.grid.edges if ((e.p1.id == p2.id)
                                                        and (e.p2.id == p3.id)) or ((e.p1.id == p3.id)
                                                        and (e.p2.id == p2.id))]
-                    e1 = None
-                    e2 = None
 
                     # These points are already part of a triangle!
                     if len(p1_and_p3_already_connected) and len(p2_and_p3_already_connected):
@@ -436,13 +464,16 @@ class BPA:
 
                     if e1 is None:
                         e1 = Edge(p1, p3)
+                        e1.num_triangles_this_edge_is_in += 1
+                        self.grid.add_edge(e1)
                     if e2 is None:
                         e2 = Edge(p2, p3)
+                        e1.num_triangles_this_edge_is_in += 1
+                        self.grid.add_edge(e2)
 
-                    self.grid.add_edge(e1)
-                    self.grid.add_edge(e2)
                     self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, edge.p1, edge.p2}))
                     return e1, e2
-        # If we can't keep going from this edge, remove it.
-        else:
-            return None, None
+            else:
+                return None, None
+
+        return None, None
