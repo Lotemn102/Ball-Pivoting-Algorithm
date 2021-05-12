@@ -7,6 +7,7 @@ from typing import List
 from grid import Grid
 from point import Point
 from edge import Edge
+from visualizer import Visualizer
 import utils
 import open3d as o3d
 import numpy as np
@@ -16,90 +17,16 @@ from typing import Tuple
 
 class BPA:
     def __init__(self, path, radius, visualizer=False):
-        # TODO: Do i really want this to be dynamic array?
         self.points = self.read_points(path) # "free points" will be on the beginning of the list, "used points" will
         # be on the end of the list.
         self.const_points = copy.deepcopy(self.points) # For visualizing
         self.radius = radius
         self.grid = Grid(points=self.points, radius=radius)
         self.num_free_points = len(self.points)
-        self.vis = None
+        self.visualizer = None
 
         if visualizer is True:
-            self.vis = self.init_visualizer()
-
-    def init_visualizer(self):
-        pcd = o3d.geometry.PointCloud()
-        points = np.array([(point.x, point.y, point.z) for point in self.const_points])
-        pcd.points = o3d.utility.Vector3dVector(points)
-
-        # Color the point in black.
-        points_mask = np.zeros(shape=(len(self.const_points), 3))
-        black_colors = np.zeros_like(points_mask)
-        pcd.colors = o3d.Vector3dVector(black_colors)
-
-        # Set up visualizer.
-        vis = o3d.visualization.Visualizer()
-        vis.create_window()
-        vis.add_geometry(pcd)
-        return vis
-
-    def update_visualizer(self, color='red'):
-        """
-        Updating only the edges (assuming points don't change).
-
-        :return: None
-        """
-
-        if color == 'red':
-            c = [1, 0, 0]
-        elif color == 'green':
-            c = [0, 1, 0]
-        else:
-            c = [0, 0, 1]
-
-        '''
-        triangles = []
-
-        for triangle in self.grid.triangles:
-            index_1 = self.points.index(triangle[0])
-            index_2 = self.points.index(triangle[1])
-            index_3 = self.points.index(triangle[2])
-            triangles.append([index_1, index_2, index_3])
-        '''
-
-        lines = [[edge.p1.id, edge.p2.id] for edge in self.grid.edges]
-
-        for edge in self.grid.edges:
-            if edge.color == []:
-                edge.color = c
-
-        colors = [edge.color for edge in self.grid.edges]
-        line_set = o3d.geometry.LineSet()
-        points = np.array([(point.x, point.y, point.z) for point in self.const_points])
-        line_set.points = o3d.Vector3dVector(points)
-        line_set.lines = o3d.utility.Vector2iVector(lines)
-        line_set.colors = o3d.utility.Vector3dVector(colors)
-
-        '''
-        triangles = np.asarray(triangles).astype(np.int32)
-        points = np.array([(point.x, point.y, point.z) for point in self.points])
-
-        mesh = o3d.TriangleMesh()
-        mesh.vertices = o3d.Vector3dVector(points)
-        mesh.triangles = o3d.Vector3iVector(np.array(triangles))
-        #mesh.paint_uniform_color(c)
-        #self.vis.add_geometry(mesh)
-        '''
-
-        self.vis.get_render_option().point_size = 3.5
-        self.vis.add_geometry(line_set)
-        self.vis.update_geometry()
-        self.vis.poll_events()
-        self.vis.update_renderer()
-
-    def lock_visualizer(self):
-        self.vis.run()
+            self.visualizer = Visualizer(self.const_points)
 
     def read_points(self, path):
         points = []
@@ -305,7 +232,7 @@ class BPA:
                 return
 
             print("new seed!")
-            self.update_visualizer(color='red')
+            self.visualizer.update(edges=self.grid.edges, color='red')
 
             tried_to_expand_counter += 1
             i = 0
@@ -317,16 +244,16 @@ class BPA:
 
                 if e1 is not None and e2 is not None:
                     if tried_to_expand_counter >= limit_iterations:
-                        self.update_visualizer(color='blue')
+                        self.visualizer.update(edges=self.grid.edges, color='blue')
                     else:
-                        self.update_visualizer(color='green')
+                        self.visualizer.update(edges=self.grid.edges, color='green')
                     edges = [e1, e2]
                     i = 0
                 else:
                     i += 1
 
     def show_me_what_the_edge_see(self, edges, sorted_points):
-        self.vis.close()
+        self.visualizer.close()
         pcd = o3d.geometry.PointCloud()
         points = np.array([(point.x, point.y, point.z) for point in sorted_points])
         pcd.points = o3d.utility.Vector3dVector(points)
