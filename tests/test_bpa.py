@@ -39,7 +39,7 @@ class TestBPA(unittest.TestCase):
         # Load data.
         bpa = BPA(path='test_1_no_normal.txt', radius=0.5)
 
-        # Find a mulitple triangle.
+        # Find a mulitiple triangle.
         for i in range(50):
             res = bpa.find_seed_triangle()
 
@@ -72,9 +72,8 @@ class TestBPA(unittest.TestCase):
 
         # Find a seed triangle.
         bpa.find_seed_triangle()
-        bpa.update_visualizer(color='red')
-
-        bpa.lock_visualizer()
+        bpa.visualizer.update(edges=bpa.grid.edges, color='red')
+        bpa.visualizer.lock()
 
     def test_expand_triangle(self):
         # Load data.
@@ -95,25 +94,26 @@ class TestBPA(unittest.TestCase):
 
         # Find a seed triangle.
         bpa.find_seed_triangle()
-        bpa.update_visualizer(color='red')
+        bpa.visualizer.update(edges=bpa.grid.edges, color='red')
 
         # Expand the seed triangle.
         edges = bpa.grid.edges
         bpa.expand_triangle(edges[0])
-        bpa.update_visualizer(color='green')
-        bpa.vis.run()
+        bpa.visualizer.update(edges=bpa.grid.edges, color='green')
+        bpa.visualizer.lock()
 
     def test_create_mesh(self):
         # Load data.
         bpa = BPA(path='large_bunny_with_normals.txt', radius=0.005, visualizer=True)
+        # TODO: The blue line below shouldn't be there
         bpa.create_mesh(limit_iterations=105)
-        bpa.lock_visualizer()
+        bpa.visualizer.lock()
 
     def test_small_bunny(self):
         # Load data.
         bpa = BPA(path='bunny_with_normals.txt', radius=0.0005, visualizer=True)
         bpa.create_mesh(limit_iterations=900)
-        bpa.lock_visualizer()
+        bpa.visualizer.lock()
 
 
 

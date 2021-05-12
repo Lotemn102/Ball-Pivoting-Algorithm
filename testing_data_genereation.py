@@ -3,7 +3,7 @@ import open3d as o3d
 import numpy as np
 
 bpa = BPA(path='output.txt', radius=0.04, visualizer=True)
-bpa.vis.close()
+bpa.visualizer.close()
 
 pcd = o3d.geometry.PointCloud()
 points = np.array([(point.x, point.y, point.z) for point in bpa.const_points])
