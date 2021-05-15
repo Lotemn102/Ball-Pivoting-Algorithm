@@ -404,7 +404,7 @@ class BPA:
                 self.show_me_what_the_edge_see(edges, sorted_possible_points[:4])
 
             for index, p3 in enumerate(sorted_possible_points):
-                if p3.id == p1.id or p3.id == p2.id or p3.id == third_point_of_triangle_we_expand:
+                if p3.id == p1.id or p3.id == p2.id or p3.id == third_point_of_triangle_we_expand.id:
                     continue
 
                 if self.will_triangles_overlap(edge, third_point_of_triangle_we_expand, p3):
