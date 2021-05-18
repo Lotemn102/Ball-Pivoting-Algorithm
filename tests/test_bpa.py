@@ -105,9 +105,7 @@ class TestBPA(unittest.TestCase):
     def test_create_mesh(self):
         # Load data.
         bpa = BPA(path='large_bunny_with_normals.txt', radius=0.005, visualizer=True)
-        print("Starting...")
-        bpa.create_mesh(limit_iterations=1000)
-        print("Finished.")
+        bpa.create_mesh(limit_iterations=20)
         bpa.visualizer.lock()
 
     def test_small_bunny(self):
@@ -115,6 +113,9 @@ class TestBPA(unittest.TestCase):
         bpa = BPA(path='bunny_with_normals.txt', radius=0.0005, visualizer=True)
         bpa.create_mesh(limit_iterations=900)
         bpa.visualizer.lock()
+
+        # TODO: Fix the mesh renderer. The problem is that the vertex are added to the triangle without checking
+        #  if they are clockwise or counter clock wise!
 
     def test_tea(self):
         # Load data.

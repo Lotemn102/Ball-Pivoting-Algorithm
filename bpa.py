@@ -13,6 +13,7 @@ import open3d as o3d
 import numpy as np
 import copy
 from typing import Tuple
+from tqdm import tqdm
 
 
 class BPA:
@@ -25,9 +26,10 @@ class BPA:
         self.grid = Grid(points=self.points, radius=radius)
         self.num_free_points = len(self.points)
         self.visualizer = None
+        self.first_triangle_normal = None
 
         if visualizer is True:
-            self.visualizer = Visualizer(self.const_points)
+            self.visualizer = Visualizer(self.points)
 
     def read_points(self, path):
         points = []
@@ -81,11 +83,10 @@ class BPA:
 
         # For each other point, find all points that are in 2r distance from that other point.
         for p2 in p1_neighbor_points:
-
-            if p2.x == p1.x and p2.y == p1.y and p2.z == p1.z:
+            if p2.is_used:
                 continue
 
-            if p2 not in self.points:
+            if p2.x == p1.x and p2.y == p1.y and p2.z == p1.z:
                 continue
 
             # Find all points that are on 2r distance from p1 and p2
@@ -102,12 +103,13 @@ class BPA:
             possible_points = [x for _, x in sorted(zip(dists, possible_points))]
 
             for i, p3 in enumerate(possible_points):
+                if p3.is_used:
+                    continue
+
                 if (p3.x == p1.x and p3.y == p1.y and p3.z == p1.z) or (p2.x == p3.x and p2.y == p3.y and p2.z
                                                                         == p3.z):
                     continue
 
-                if p3 not in self.points:
-                    continue
 
                 # For each three points we got, check if a sphere with a radius of r cant be fitted inside the
                 # triangle.
@@ -178,7 +180,22 @@ class BPA:
                     self.grid.edges.append(e2)
                     self.grid.edges.append(e3)
 
-                    self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, e3.p1, e3.p2}))
+                    triangle = sorted(list({e1.p1, e1.p2, e2.p1, e2.p2, e3.p1, e3.p2}))
+                    #triangle.reverse()
+
+                    '''
+                    v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
+                    v2 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
+                    normal = np.cross(v1, v2)
+
+                    if self.first_triangle_normal is None:
+                        self.first_triangle_normal = normal
+                        
+                    elif np.sign(np.dot(normal, self.first_triangle_normal)) < 0:
+                        triangle.reverse()
+                    '''
+
+                    self.grid.triangles.append(triangle)
 
                     # Move the points to the end of the list.
                     '''
@@ -207,38 +224,45 @@ class BPA:
         return self.find_seed_triangle(), None
 
     def create_mesh(self, limit_iterations=float('inf')):
-        times_failed_to_expand_from_new_seed = 0
+        print('Starting...')
         tried_to_expand_counter = 0
 
-        while 1 and tried_to_expand_counter < limit_iterations:
-            # Find a seed triangle.
-            _, edges = self.find_seed_triangle()
+        with tqdm(total=limit_iterations) as pbar:
+            while 1 and tried_to_expand_counter < limit_iterations:
+                # Find a seed triangle.
+                _, edges = self.find_seed_triangle()
 
-            if edges is None:
-                return
+                if edges is None:
+                    return
 
-            if self.visualizer is not None:
-                self.visualizer.update(edges=self.grid.edges, color='red')
+                if self.visualizer is not None:
+                    self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles, color='red')
 
-            tried_to_expand_counter += 1
-            i = 0
-
-            # Try to expand from each edge.
-            while i < len(edges) and tried_to_expand_counter < limit_iterations:
-                e1, e2 = self.expand_triangle(edges[i], edges, False)
                 tried_to_expand_counter += 1
+                pbar.update(1)
+                i = 0
 
-                if e1 is not None and e2 is not None:
-                    edges = [e1, e2]
-                    i = 0
+                # Try to expand from each edge.
+                while i < len(edges) and tried_to_expand_counter < limit_iterations:
+                    e1, e2 = self.expand_triangle(edges[i], edges, False)
+                    tried_to_expand_counter += 1
+                    pbar.update(1)
 
-                    if self.visualizer is not None:
-                        if tried_to_expand_counter >= limit_iterations:
-                            self.visualizer.update(edges=self.grid.edges, color='blue')
-                        else:
-                            self.visualizer.update(edges=self.grid.edges, color='green')
-                else:
-                    i += 1
+                    if e1 is not None and e2 is not None:
+                        edges = [e1, e2]
+                        i = 0
+
+                        if self.visualizer is not None:
+                            if tried_to_expand_counter >= limit_iterations:
+                                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
+                                                       color='blue')
+                            else:
+                                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
+                                                       color='green')
+                    else:
+                        i += 1
+
+        print("Finished.")
 
     def show_me_what_the_edge_see(self, edges, sorted_points):
         self.visualizer.close()
@@ -505,7 +529,18 @@ class BPA:
                     self.grid.add_edge(e1)
                     self.grid.add_edge(e2)
 
-                    self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, edge.p1, edge.p2}))
+                    triangle = sorted(list({e1.p1, e1.p2, e2.p1, e2.p2,edge.p1, edge.p2}))
+
+                    '''
+                    v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
+                    v2 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
+                    normal = np.cross(v1, v2)
+
+                    if np.sign(np.dot(normal, self.first_triangle_normal)) < 0:
+                        triangle.reverse()
+                    '''
+
+                    self.grid.triangles.append(triangle)
                     return e1, e2
             else:
                 return None, None
