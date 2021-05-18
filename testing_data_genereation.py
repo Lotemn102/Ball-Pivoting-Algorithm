@@ -26,7 +26,7 @@ for p in bpa.const_points:
     points.append([p.x, p.y, p.z])
 
     # Calc another point on that normal vector at fixed distance
-    distance = 0.5
+    distance = 0.2
     n = np.asarray(p.normal)
     c = (distance / np.sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2])) * n
     c[0] = c[0] + p.x

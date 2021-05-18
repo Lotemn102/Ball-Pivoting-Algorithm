@@ -6,7 +6,7 @@ Models are taken from here: https://github.com/alecjacobson/common-3d-test-model
 """
 
 if __name__ == "__main__":
-    f = open("stanford-bunny.obj")
+    f = open("teapot.obj")
     lines = f.readlines()
     f.close()
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
                 splitted[i] = element[:-1]
 
         if splitted != [] and 'v' in splitted[0]:
-            p = Point(x=float(splitted[1])*100, y=float(splitted[2])*100, z=float(splitted[3])*100, id=1)
+            p = Point(x=float(splitted[1])*1, y=float(splitted[2])*1, z=float(splitted[3])*1, id=1)
             points.append(p)
 
         if splitted != [] and 'f' in splitted[0]:

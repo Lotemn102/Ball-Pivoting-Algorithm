@@ -7,6 +7,8 @@ class Visualizer:
         self.points = points
         self.visualizer = None
         self.init_visualiser()
+        self.pcd = None
+        self.lines_set = None
 
     def init_visualiser(self):
         pcd = o3d.geometry.PointCloud()
@@ -52,6 +54,8 @@ class Visualizer:
         for edge in edges:
             if edge.color == []:
                 edge.color = c
+            if edge.p1.id == 246 and edge.p2.id == 302 or edge.p2.id == 302 and edge.p1.id == 246:
+                edge.color = [0, 0, 1]
 
         colors = [edge.color for edge in edges]
         line_set = o3d.geometry.LineSet()
@@ -77,13 +81,14 @@ class Visualizer:
         self.visualizer.poll_events()
         self.visualizer.update_renderer()
 
+
     def lock(self):
         self.visualizer.run()
 
     def close(self):
         self.visualizer.close()
 
-    def draw_with_normals(self, percentage=10):
+    def draw_with_normals(self, percentage=10, normals_size=1):
         """
         Draw the point cloud with it's normals.
 
@@ -113,7 +118,7 @@ class Visualizer:
             points.append([p.x, p.y, p.z])
 
             # Calc another point on that normal vector at fixed distance
-            distance = 0.5
+            distance = normals_size
             n = np.asarray(p.normal)
             c = (distance / np.sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2])) * n
             c[0] = c[0] + p.x

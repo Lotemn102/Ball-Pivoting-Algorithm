@@ -105,14 +105,23 @@ class TestBPA(unittest.TestCase):
     def test_create_mesh(self):
         # Load data.
         bpa = BPA(path='large_bunny_with_normals.txt', radius=0.005, visualizer=True)
-        # TODO: The blue line below shouldn't be there
-        bpa.create_mesh(limit_iterations=105)
+        print("Starting...")
+        bpa.create_mesh(limit_iterations=1000)
+        print("Finished.")
         bpa.visualizer.lock()
 
     def test_small_bunny(self):
         # Load data.
         bpa = BPA(path='bunny_with_normals.txt', radius=0.0005, visualizer=True)
         bpa.create_mesh(limit_iterations=900)
+        bpa.visualizer.lock()
+
+    def test_tea(self):
+        # Load data.
+        bpa = BPA(path='teapot_with_normal.txt', radius=0.02, visualizer=True)
+        print("Starting...")
+        bpa.create_mesh(limit_iterations=1000)
+        print("Finished.")
         bpa.visualizer.lock()
 
 

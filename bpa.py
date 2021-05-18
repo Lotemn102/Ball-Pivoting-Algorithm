@@ -17,6 +17,7 @@ from typing import Tuple
 
 class BPA:
     def __init__(self, path, radius, visualizer=False):
+        self.first_free_point_index = 0
         self.points = self.read_points(path) # "free points" will be on the beginning of the list, "used points" will
         # be on the end of the list.
         self.const_points = copy.deepcopy(self.points) # For visualizing
@@ -60,12 +61,11 @@ class BPA:
         return sorted_points
 
     def find_seed_triangle(self) -> (int, Tuple):
-        # Stop if there aren't any free points left.
-        if self.num_free_points == 0 or self.num_free_points <= 2:
-            return -1, None
-
         # Find a free point.
-        p1 = self.points[0]
+        while self.points[self.first_free_point_index].is_used:
+            self.first_free_point_index += 1
+
+        p1 = self.points[self.first_free_point_index]
         p1_neighbor_points = []
 
         # Find all points in 2r distance from that point.
@@ -136,37 +136,17 @@ class BPA:
                     e2 = None
                     e3 = None
 
-                    if len(p1_and_p3_already_connected) > 0:
-                        # Find the single edge they are connected with.
-                        e1 = p1_and_p3_already_connected[0]
-
-                        if e1.num_triangles_this_edge_is_in >= 1:
-                            break
-
-                        e1.num_triangles_this_edge_is_in += 1
-
-                    if len(p1_and_p2_already_connected) > 0:
-                        # Find the single edge they are connected with.
-                        e2 = p1_and_p2_already_connected[0]
-
-                        if e2.num_triangles_this_edge_is_in >= 1:
-                            break
-
-                        e2.num_triangles_this_edge_is_in += 1
-
-                    if len(p2_and_p3_already_connected) > 0:
-                        # Find the single edge they are connected with.
-                        e3 = p2_and_p3_already_connected[0]
-
-                        if e3.num_triangles_this_edge_is_in >= 1:
-                            break
-
-                        e3.num_triangles_this_edge_is_in += 1
+                    if len(p1_and_p3_already_connected) > 0 or len(p1_and_p2_already_connected) > 0 or\
+                            len(p2_and_p3_already_connected) > 0:
+                        continue
 
                     # Check if one of the new edges might close another triangle in the mesh.
-                    are_p1_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p1, p3)
-                    are_p2_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p2, p3)
-                    are_p1_p2_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p1, p2)
+                    are_p1_p3_closing_another_triangle_in_the_mesh = \
+                        self.is_there_a_path_between_two_points(p1, p3, point_of_triangle_we_creating=p2)
+                    are_p2_p3_closing_another_triangle_in_the_mesh = \
+                        self.is_there_a_path_between_two_points(p2, p3, point_of_triangle_we_creating=p1)
+                    are_p1_p2_closing_another_triangle_in_the_mesh = \
+                        self.is_there_a_path_between_two_points(p1, p2, point_of_triangle_we_creating=p3)
 
                     if e1 is None:
                         e1 = Edge(p1, p3)
@@ -175,7 +155,6 @@ class BPA:
                         if are_p1_p3_closing_another_triangle_in_the_mesh:
                             e1.num_triangles_this_edge_is_in += 1
 
-                        self.grid.edges.append(e1)
                     if e2 is None:
                         e2 = Edge(p1, p2)
                         e2.num_triangles_this_edge_is_in += 1
@@ -183,7 +162,6 @@ class BPA:
                         if are_p1_p2_closing_another_triangle_in_the_mesh:
                             e2.num_triangles_this_edge_is_in += 1
 
-                        self.grid.edges.append(e2)
                     if e3 is None:
                         e3 = Edge(p2, p3)
                         e3.num_triangles_this_edge_is_in += 1
@@ -191,11 +169,19 @@ class BPA:
                         if are_p2_p3_closing_another_triangle_in_the_mesh:
                             e3.num_triangles_this_edge_is_in += 1
 
-                        self.grid.edges.append(e3)
+                    # Get rid of these extreme acute or obtuse triangles.
+                    min_angle, max_angle = utils.calc_min_max_angle_of_triangle(e1, e2, e3)
+                    if max_angle > 170 or min_angle < 20:
+                        continue
+
+                    self.grid.edges.append(e1)
+                    self.grid.edges.append(e2)
+                    self.grid.edges.append(e3)
 
                     self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, e3.p1, e3.p2}))
 
                     # Move the points to the end of the list.
+                    '''
                     self.points.remove(p1)
                     self.points.insert(len(self.points), p1)
                     self.num_free_points = self.num_free_points - 1
@@ -207,6 +193,8 @@ class BPA:
                     self.points.remove(p3)
                     self.points.insert(len(self.points), p3)
                     self.num_free_points = self.num_free_points - 1
+                    '''
+                    self.first_free_point_index += 1
 
                     p1.is_used = True
                     p2.is_used = True
@@ -215,9 +203,7 @@ class BPA:
                     return 1, (e1, e2, e3)
 
         # Else, find another free point and start over.
-        self.points.remove(p1)
-        self.points.insert(len(self.points), p1)
-        self.num_free_points = self.num_free_points - 1
+        self.first_free_point_index += 1
         return self.find_seed_triangle(), None
 
     def create_mesh(self, limit_iterations=float('inf')):
@@ -231,8 +217,8 @@ class BPA:
             if edges is None:
                 return
 
-            print("new seed!")
-            self.visualizer.update(edges=self.grid.edges, color='red')
+            if self.visualizer is not None:
+                self.visualizer.update(edges=self.grid.edges, color='red')
 
             tried_to_expand_counter += 1
             i = 0
@@ -243,12 +229,14 @@ class BPA:
                 tried_to_expand_counter += 1
 
                 if e1 is not None and e2 is not None:
-                    if tried_to_expand_counter >= limit_iterations:
-                        self.visualizer.update(edges=self.grid.edges, color='blue')
-                    else:
-                        self.visualizer.update(edges=self.grid.edges, color='green')
                     edges = [e1, e2]
                     i = 0
+
+                    if self.visualizer is not None:
+                        if tried_to_expand_counter >= limit_iterations:
+                            self.visualizer.update(edges=self.grid.edges, color='blue')
+                        else:
+                            self.visualizer.update(edges=self.grid.edges, color='green')
                 else:
                     i += 1
 
@@ -318,7 +306,7 @@ class BPA:
 
         return possible_triangles
 
-    def is_there_a_path_between_two_points(self, p1, p2):
+    def is_there_a_path_between_two_points(self, p1, p2, point_of_triangle_we_creating):
         edges_first_point_int = []
         edges_second_point_int = []
         points_first_edges = []
@@ -350,6 +338,8 @@ class BPA:
             points_second_edges.remove(p2.id)
 
         intersection = set(points_first_edges & points_second_edges)
+        if point_of_triangle_we_creating.id in intersection:
+            intersection.remove(point_of_triangle_we_creating.id)
 
         return len(intersection) > 0
 
@@ -397,7 +387,7 @@ class BPA:
 
             # For better performance. If we couldn't find a close point to expand to, it's better just to find new
             # seed than getting a far point.
-            LIMIT_POINTS = 10
+            LIMIT_POINTS = 5
             sorted_possible_points = sorted_possible_points[:LIMIT_POINTS]
 
             if debug_flag:
@@ -445,17 +435,15 @@ class BPA:
 
                         # Make sure that if the edge they are already connected with is part of the triangle, the new
                         # triangle will not overlap
-                        # TODO: Continue this part
-                        '''
                         triangles = self.find_triangles_by_edge(e1)
 
                         if len(triangles) >= 2:
                             continue
                         else:
                             third_point_of_triangle = [p for p in triangles[0] if p.id != p1.id and p.id != p3.id][0]
+
                             if self.will_triangles_overlap(e1, third_point_of_triangle, p2):
                                 continue
-                        '''
 
                         e1.num_triangles_this_edge_is_in += 1
 
@@ -466,6 +454,17 @@ class BPA:
                         if e2.num_triangles_this_edge_is_in >= 2:
                             continue
 
+                        # Make sure that if the edge they are already connected with is part of the triangle, the new
+                        # triangle will not overlap
+                        triangles = self.find_triangles_by_edge(e2)
+
+                        if len(triangles) >= 2:
+                            continue
+                        else:
+                            third_point_of_triangle = [p for p in triangles[0] if p.id != p1.id and p.id != p3.id][0]
+                            if self.will_triangles_overlap(e2, third_point_of_triangle, p1):
+                                continue
+
                         e2.num_triangles_this_edge_is_in += 1
 
                     # Check if one of the new edges might close another triangle in the mesh.
@@ -473,8 +472,8 @@ class BPA:
                     are_p2_p3_closing_another_triangle_in_the_mesh = False
 
                     if p3.is_used:
-                        are_p1_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p1, p3)
-                        are_p2_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p2, p3)
+                        are_p1_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p1, p3, p2)
+                        are_p2_p3_closing_another_triangle_in_the_mesh = self.is_there_a_path_between_two_points(p2, p3, p1)
 
                     # Update that the edge we expand is now part of the triangle.
                     edge.num_triangles_this_edge_is_in += 1
@@ -490,7 +489,6 @@ class BPA:
                             e1.num_triangles_this_edge_is_in += 1
                             pass
 
-                        self.grid.add_edge(e1)
                     if e2 is None:
                         e2 = Edge(p2, p3)
                         e2.num_triangles_this_edge_is_in += 1
@@ -499,7 +497,13 @@ class BPA:
                             e2.num_triangles_this_edge_is_in += 1
                             pass
 
-                        self.grid.add_edge(e2)
+                    # Get rid of these extreme acute or obtuse triangles.
+                    min_angle, max_angle = utils.calc_min_max_angle_of_triangle(e1, e2, edge)
+                    if max_angle > 160 or min_angle < 20:
+                        continue
+
+                    self.grid.add_edge(e1)
+                    self.grid.add_edge(e2)
 
                     self.grid.triangles.append(list({e1.p1, e1.p2, e2.p1, e2.p2, edge.p1, edge.p2}))
                     return e1, e2
