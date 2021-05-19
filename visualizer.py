@@ -52,7 +52,7 @@ class Visualizer:
         for edge in edges:
             if edge.color == []:
                 edge.color = c
-            if edge.p1.id == 246 and edge.p2.id == 302 or edge.p2.id == 302 and edge.p1.id == 246:
+            if edge.p1.id == 2 and edge.p2.id == 2 or edge.p2.id == 2 and edge.p1.id == 2:
                 edge.color = [0, 0, 1]
 
         colors = [edge.color for edge in edges]
@@ -76,6 +76,17 @@ class Visualizer:
         mesh.vertices = o3d.Vector3dVector(points_triangles)
         mesh.triangles = o3d.Vector3iVector(facets)
         #mesh.paint_uniform_color(c)
+
+        # Manual fix since i don't define the vertices of a triangle clockwise. If they are anti-clockwise, open3d
+        # won't render their mesh.
+        mesh.compute_triangle_normals()
+
+        for i, n in enumerate(np.asarray(mesh.triangle_normals)):
+            t = mesh.triangles[i]
+            p_index = t[0]
+            p = self.points[p_index]
+            if np.dot(n, p.normal) < 0:
+                mesh.triangles[i] = np.flip(t)
 
         self.visualizer.get_render_option().point_size = 3.5
         self.visualizer.add_geometry(line_set)
