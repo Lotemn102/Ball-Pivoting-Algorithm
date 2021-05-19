@@ -52,7 +52,7 @@ class Visualizer:
         for edge in edges:
             if edge.color == []:
                 edge.color = c
-            if edge.p1.id == 246 and edge.p2.id == 302 or edge.p2.id == 302 and edge.p1.id == 246:
+            if edge.p1.id == 2 and edge.p2.id == 2 or edge.p2.id == 2 and edge.p1.id == 2:
                 edge.color = [0, 0, 1]
 
         colors = [edge.color for edge in edges]

@@ -411,6 +411,7 @@ class BPA:
 
                 # If a sphere's radius is smaller than the radius of the incircle of a triangle, the sphere can fit into
                 # the triangle.
+                t = utils.calc_incircle_radius(p1, p2, p3)
                 if self.radius <= utils.calc_incircle_radius(p1, p2, p3):
                     # Calculate new triangle's normal.
                     v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
@@ -419,7 +420,9 @@ class BPA:
 
                     # Check if the normal of the triangle is on the same direction with other points normals.
                     if np.dot(new_triangle_normal, p1.normal) < 0 and np.dot(new_triangle_normal, p2.normal) < 0:
-                        continue
+                        # TODO: Fix this! need to check if the vertices order is anti-clockwise, and if so, change the
+                        #  vector order.
+                        pass
 
                     e1 = None
                     e2 = None
@@ -496,7 +499,6 @@ class BPA:
 
                         if are_p1_p3_closing_another_triangle_in_the_mesh:
                             e1.num_triangles_this_edge_is_in += 1
-                            pass
 
                     if e2 is None:
                         e2 = Edge(p2, p3)
@@ -504,11 +506,10 @@ class BPA:
 
                         if are_p2_p3_closing_another_triangle_in_the_mesh:
                             e2.num_triangles_this_edge_is_in += 1
-                            pass
 
                     # Get rid of these extreme acute or obtuse triangles.
                     min_angle, max_angle = utils.calc_min_max_angle_of_triangle(e1, e2, edge)
-                    if max_angle > 160 or min_angle < 20:
+                    if max_angle > 180 or min_angle < 1:
                         continue
 
                     self.grid.add_edge(e1)
