@@ -75,37 +75,10 @@ class TestBPA(unittest.TestCase):
         bpa.visualizer.update(edges=bpa.grid.edges, color='red')
         bpa.visualizer.lock()
 
-    def test_expand_triangle(self):
-        # Load data.
-        bpa = BPA(path='bunny_with_normals.txt', radius=0.002, visualizer=True)
-
-        # Find a seed triangle.
-        bpa.find_seed_triangle()
-
-        # Expand the seed triangle.
-        edges = bpa.grid.edges
-        bpa.expand_triangle(edges[0])
-
-        self.assertEqual(len(bpa.grid.edges), 5)
-
-    def test_visualizer(self):
-        # Load data.
-        bpa = BPA(path='bunny_with_normals.txt', radius=0.002, visualizer=True)
-
-        # Find a seed triangle.
-        bpa.find_seed_triangle()
-        bpa.visualizer.update(edges=bpa.grid.edges, color='red')
-
-        # Expand the seed triangle.
-        edges = bpa.grid.edges
-        bpa.expand_triangle(edges[0])
-        bpa.visualizer.update(edges=bpa.grid.edges, color='green')
-        bpa.visualizer.lock()
-
     def test_create_mesh(self):
         # Load data.
         bpa = BPA(path='large_bunny_with_normals.txt', radius=0.005, visualizer=True)
-        bpa.create_mesh(limit_iterations=20)
+        bpa.create_mesh(limit_iterations=2000)
         bpa.visualizer.lock()
 
     def test_small_bunny(self):
@@ -113,9 +86,6 @@ class TestBPA(unittest.TestCase):
         bpa = BPA(path='bunny_with_normals.txt', radius=0.0005, visualizer=True)
         bpa.create_mesh(limit_iterations=900)
         bpa.visualizer.lock()
-
-        # TODO: Fix the mesh renderer. The problem is that the vertex are added to the triangle without checking
-        #  if they are clockwise or counter clock wise!
 
     def test_tea(self):
         # Load data.

@@ -77,6 +77,17 @@ class Visualizer:
         mesh.triangles = o3d.Vector3iVector(facets)
         #mesh.paint_uniform_color(c)
 
+        # Manual fix since i don't define the vertices of a triangle clockwise. If they are anti-clockwise, open3d
+        # won't render their mesh.
+        mesh.compute_triangle_normals()
+
+        for i, n in enumerate(np.asarray(mesh.triangle_normals)):
+            t = mesh.triangles[i]
+            p_index = t[0]
+            p = self.points[p_index]
+            if np.dot(n, p.normal) < 0:
+                mesh.triangles[i] = np.flip(t)
+
         self.visualizer.get_render_option().point_size = 3.5
         self.visualizer.add_geometry(line_set)
         self.visualizer.add_geometry(mesh)

@@ -63,6 +63,9 @@ class BPA:
         return sorted_points
 
     def find_seed_triangle(self) -> (int, Tuple):
+        if self.first_free_point_index == len(self.points)-1:
+            return -1, -1
+
         # Find a free point.
         while self.points[self.first_free_point_index].is_used:
             self.first_free_point_index += 1
@@ -80,6 +83,11 @@ class BPA:
         # Sort points by distance from p1.
         dists = [utils.calc_distance_points(p1, p2) for p2 in p1_neighbor_points]
         p1_neighbor_points = [x for _, x in sorted(zip(dists, p1_neighbor_points))]
+
+        # For better performance. If we couldn't find a close point to expand to, it's better just to find new
+        # seed than getting a far point.
+        LIMIT_POINTS = 5
+        p1_neighbor_points = p1_neighbor_points[:LIMIT_POINTS]
 
         # For each other point, find all points that are in 2r distance from that other point.
         for p2 in p1_neighbor_points:
@@ -102,6 +110,11 @@ class BPA:
             dists = [dist_p1[i] + dists_p2[i] for i in range(len(dist_p1))]
             possible_points = [x for _, x in sorted(zip(dists, possible_points))]
 
+            # For better performance. If we couldn't find a close point to expand to, it's better just to find new
+            # seed than getting a far point.
+            LIMIT_POINTS = 5
+            possible_points = possible_points[:LIMIT_POINTS]
+
             for i, p3 in enumerate(possible_points):
                 if p3.is_used:
                     continue
@@ -109,7 +122,6 @@ class BPA:
                 if (p3.x == p1.x and p3.y == p1.y and p3.z == p1.z) or (p2.x == p3.x and p2.y == p3.y and p2.z
                                                                         == p3.z):
                     continue
-
 
                 # For each three points we got, check if a sphere with a radius of r cant be fitted inside the
                 # triangle.
@@ -181,36 +193,9 @@ class BPA:
                     self.grid.edges.append(e3)
 
                     triangle = sorted(list({e1.p1, e1.p2, e2.p1, e2.p2, e3.p1, e3.p2}))
-                    #triangle.reverse()
-
-                    '''
-                    v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
-                    v2 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
-                    normal = np.cross(v1, v2)
-
-                    if self.first_triangle_normal is None:
-                        self.first_triangle_normal = normal
-                        
-                    elif np.sign(np.dot(normal, self.first_triangle_normal)) < 0:
-                        triangle.reverse()
-                    '''
-
                     self.grid.triangles.append(triangle)
 
                     # Move the points to the end of the list.
-                    '''
-                    self.points.remove(p1)
-                    self.points.insert(len(self.points), p1)
-                    self.num_free_points = self.num_free_points - 1
-
-                    self.points.remove(p2)
-                    self.points.insert(len(self.points), p2)
-                    self.num_free_points = self.num_free_points - 1
-
-                    self.points.remove(p3)
-                    self.points.insert(len(self.points), p3)
-                    self.num_free_points = self.num_free_points - 1
-                    '''
                     self.first_free_point_index += 1
 
                     p1.is_used = True
@@ -221,7 +206,7 @@ class BPA:
 
         # Else, find another free point and start over.
         self.first_free_point_index += 1
-        return self.find_seed_triangle(), None
+        return self.find_seed_triangle()
 
     def create_mesh(self, limit_iterations=float('inf')):
         print('Starting...')
@@ -531,14 +516,12 @@ class BPA:
 
                     triangle = sorted(list({e1.p1, e1.p2, e2.p1, e2.p2,edge.p1, edge.p2}))
 
-                    '''
                     v1 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
                     v2 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
                     normal = np.cross(v1, v2)
 
-                    if np.sign(np.dot(normal, self.first_triangle_normal)) < 0:
+                    if np.sign(np.dot(normal, p1.normal)) < 0:
                         triangle.reverse()
-                    '''
 
                     self.grid.triangles.append(triangle)
                     return e1, e2
