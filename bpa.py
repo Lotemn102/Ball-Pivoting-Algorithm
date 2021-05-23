@@ -1,8 +1,10 @@
 import random
+import multiprocessing
 import threading
 import concurrent.futures
 import time
 from typing import List
+import random
 
 from grid import Grid
 from point import Point
@@ -15,10 +17,12 @@ import copy
 from typing import Tuple
 from tqdm import tqdm
 
+INFINITY = 9999999999
 
 class BPA:
-    def __init__(self, path, radius, visualizer=False):
+    def __init__(self, path, radius, visualizer=False, num_workers=1):
         self.first_free_point_index = 0
+        self.num_points_i_tried_to_seed_from = 0
         self.points = self.read_points(path) # "free points" will be on the beginning of the list, "used points" will
         # be on the end of the list.
         self.const_points = copy.deepcopy(self.points) # For visualizing
@@ -26,7 +30,7 @@ class BPA:
         self.grid = Grid(points=self.points, radius=radius)
         self.num_free_points = len(self.points)
         self.visualizer = None
-        self.first_triangle_normal = None
+        self.num_workers = num_workers
 
         if visualizer is True:
             self.visualizer = Visualizer(self.points)
@@ -62,15 +66,20 @@ class BPA:
 
         return sorted_points
 
-    def find_seed_triangle(self) -> (int, Tuple):
-        if self.first_free_point_index == len(self.points)-1:
-            return -1, -1
+    def find_seed_triangle(self, first_point_index=0, num_recursion_calls=0) -> (int, Tuple):
+        if num_recursion_calls > 10:
+            return -1, -1, -1
 
         # Find a free point.
-        while self.points[self.first_free_point_index].is_used:
-            self.first_free_point_index += 1
+        while first_point_index < len(self.points)-1 and self.points[first_point_index].is_used:
+            first_point_index += 1
 
-        p1 = self.points[self.first_free_point_index]
+        if first_point_index >= len(self.points) - 1:
+            first_point_index = 0
+
+        print(first_point_index)
+        #self.num_points_i_tried_to_seed_from += 1
+        p1 = self.points[first_point_index]
         p1_neighbor_points = []
 
         # Find all points in 2r distance from that point.
@@ -86,7 +95,7 @@ class BPA:
 
         # For better performance. If we couldn't find a close point to expand to, it's better just to find new
         # seed than getting a far point.
-        LIMIT_POINTS = 5
+        LIMIT_POINTS = 6
         p1_neighbor_points = p1_neighbor_points[:LIMIT_POINTS]
 
         # For each other point, find all points that are in 2r distance from that other point.
@@ -117,7 +126,8 @@ class BPA:
 
             for i, p3 in enumerate(possible_points):
                 if p3.is_used:
-                    continue
+                    #continue
+                    pass
 
                 if (p3.x == p1.x and p3.y == p1.y and p3.z == p1.z) or (p2.x == p3.x and p2.y == p3.y and p2.z
                                                                         == p3.z):
@@ -202,13 +212,64 @@ class BPA:
                     p2.is_used = True
                     p3.is_used = True
 
-                    return 1, (e1, e2, e3)
+                    return 1, (e1, e2, e3), first_point_index
 
         # Else, find another free point and start over.
-        self.first_free_point_index += 1
-        return self.find_seed_triangle()
+        return self.find_seed_triangle(first_point_index=first_point_index+1, num_recursion_calls=num_recursion_calls+1)
 
-    def create_mesh(self, limit_iterations=float('inf')):
+    def create_mesh_thread(self,  limit_iterations=INFINITY, first_point_index=0):
+        tried_to_expand_counter = 0
+
+        while 1 and tried_to_expand_counter < limit_iterations:
+            # Find a seed triangle.
+            _, edges, last_point_index = self.find_seed_triangle(first_point_index=first_point_index)
+            first_point_index = last_point_index
+
+            if edges is None or edges is -1:
+                return
+
+            if self.visualizer is not None:
+                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles, color='red')
+
+            tried_to_expand_counter += 1
+            i = 0
+
+            # Try to expand from each edge.
+            while i < len(edges) and tried_to_expand_counter < limit_iterations:
+                e1, e2 = self.expand_triangle(edges[i], edges, False)
+                tried_to_expand_counter += 1
+
+                if e1 is not None and e2 is not None:
+                    edges = [e1, e2]
+                    i = 0
+
+                    if self.visualizer is not None:
+                        if tried_to_expand_counter >= limit_iterations:
+                            self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
+                                                   color='blue')
+                        else:
+                            self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
+                                                   color='green')
+                else:
+                    i += 1
+
+    def create_mesh(self, limit_iterations=INFINITY):
+        threads = []
+        partial_limit_iterations = int(limit_iterations / self.num_workers)
+
+        for i in range(self.num_workers):
+            random_point_index = random.randint(0, len(self.points))
+            t = threading.Thread(target=self.create_mesh_thread, args=(partial_limit_iterations, random_point_index, ))
+            threads.append(t)
+            t.start()
+
+        for thread in threads:
+            thread.join()
+
+        if self.visualizer is not None:
+            self.visualizer.lock()
+
+    def create_mesh_with_progress_bar(self, limit_iterations=float('inf')):
         print('Starting...')
         tried_to_expand_counter = 0
 

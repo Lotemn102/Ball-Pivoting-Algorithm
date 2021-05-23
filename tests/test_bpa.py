@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from grid import Grid
 from point import Point
 from bpa import BPA
-import open3d
+import open3d as o3d
 import numpy as np
 import time
 
@@ -94,6 +94,21 @@ class TestBPA(unittest.TestCase):
         bpa.create_mesh(limit_iterations=1000)
         print("Finished.")
         bpa.visualizer.lock()
+
+    @staticmethod
+    def rotate_view(vis):
+        ctr = vis.get_view_control()
+        ctr.rotate(10.0, 0.0)
+        return False
+
+    def test_multi_process(self):
+        # Load data.
+        # TODO: Check why this runs very slow? maybe pass limit_iterations to find_seed?
+        bpa = BPA(path='large_bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=2)
+        bpa.create_mesh(limit_iterations=1000)
+
+
+
 
 
 
