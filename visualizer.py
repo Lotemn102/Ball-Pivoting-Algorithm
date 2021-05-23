@@ -10,6 +10,7 @@ class Visualizer:
         self.init_visualiser()
         self.pcd = None
         self.lines_set = None
+        self.rotation_angle = 0
 
     def init_visualiser(self):
         pcd = o3d.geometry.PointCloud()
@@ -22,6 +23,7 @@ class Visualizer:
         pcd.colors = o3d.Vector3dVector(black_colors)
 
         # Set up visualizer.
+        self.pcd = pcd
         self.visualizer = o3d.visualization.Visualizer()
         self.visualizer.create_window()
         self.visualizer.add_geometry(pcd)
@@ -75,7 +77,6 @@ class Visualizer:
         mesh = o3d.TriangleMesh()
         mesh.vertices = o3d.Vector3dVector(points_triangles)
         mesh.triangles = o3d.Vector3iVector(facets)
-        #mesh.paint_uniform_color(c)
 
         # Manual fix since i don't define the vertices of a triangle clockwise. If they are anti-clockwise, open3d
         # won't render their mesh.
@@ -91,10 +92,15 @@ class Visualizer:
         self.visualizer.get_render_option().point_size = 3.5
         self.visualizer.add_geometry(line_set)
         self.visualizer.add_geometry(mesh)
+
+        # Rotate the object
+        ctr = self.visualizer.get_view_control()
+        self.rotation_angle += 4
+        ctr.rotate(x=self.rotation_angle, y=0)
+
         self.visualizer.update_geometry()
         self.visualizer.poll_events()
         self.visualizer.update_renderer()
-
 
     def lock(self):
         self.visualizer.run()
