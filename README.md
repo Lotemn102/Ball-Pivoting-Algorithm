@@ -78,8 +78,8 @@ Consists of 3 coordinates, the normal in this point, the cell node it's sitting 
 Consists of 2 Point objects.
 
 ## Multithreading
-I did implement a multi-threaded version, although it does not improve running time due to Python's GIL that prevents
-making use of more than one CPU core, or separate CPUs in order to run threads in parallel. I did find out that **Resume this on the linux machine**.
+Initially i implemented a multi-threaded version of the algorithm. I knew it won't improve the algorithm's running time due to Python's GIL, that prevents
+making use of more than one CPU core to run threads in parallel, but i thought it might improve the algorithm's mesh quality if i run simultaneously multiple threads in different parts of the object. It didn't improved the algorithm's quality. I think a better idea would be the implement the algorithm using CUDA and [Numba](http://numba.pydata.org/)'s JIT, but it's not trivial and requires some work.
 
 ## Complexity
 Finding a seed costs <img src="https://latex.codecogs.com/gif.latex?O(n^2logn)" width="6%"/> time. We iterate through all points.
@@ -117,12 +117,12 @@ following figure.
 
 
 ## Dataset
-This algorithm expects to get as input .txt file in the following pattern:
+This algorithm expects to get as input `.txt` file in the following pattern:
 > x y z nx ny nz
 > 
 Where `x`, `y` and `z` are the point's coordinates, and `nx`, `ny` and `nz` are the point's normal vector's coordinates.
 In order to generate the data to test the algorithm, i've downloaded 3D objects in .obj format [[4]](#4), extracted the points, and 
-extracted each point's normal based on one of the facets it belongs to. 
+extracted each point's normal based on one of the facets it belongs to. Examples of the data are in the `data` folder. Code for generating new data is in `data_generator.py`.
 
 ## How to Run
 ### Requirements
