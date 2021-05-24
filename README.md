@@ -154,7 +154,7 @@ will be drawn. If set to 100, all normals will be drawn. Default value is set to
     ```
 
 ## Example
-An example of Stansford's bunny is in here:
+An example of Stansford's bunny is in [here](https://www.youtube.com/watch?v=M7yjUFE5mTI):
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=M7yjUFE5mTI">
