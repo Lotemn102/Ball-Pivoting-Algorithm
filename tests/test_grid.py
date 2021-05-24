@@ -8,7 +8,7 @@ class TestGrid(unittest.TestCase):
         points = []
 
         for i in range(1000):
-            p = Point(i, i, i)
+            p = Point(i, i, i, 0)
             points.append(p)
 
         grid1 = Grid(radius=1)
@@ -27,7 +27,7 @@ class TestGrid(unittest.TestCase):
         for i in range(-1, 2):
             for j in range(-1, 2):
                 for k in range(-1, 2):
-                    p = Point(i+1, j+1, k+1)
+                    p = Point(i+1, j+1, k+1, 0)
                     points.append(p)
 
                     if i == 1 and j == 1 and k == 1:

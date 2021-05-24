@@ -2,6 +2,7 @@
 Python implementation of the ball-pivoting algorithm (BPA), which was published in 1999 by Bernardini  [[1]](#1). Some ideas in
 this implementation were inspired by the implementation of Digne, which was published in 2014 [[2]](#2).
 
+<img src="images/figure1.png" width="200">
 
 ## Algorithm Overview
 This algorithm solves the problem of reconstructing mesh surface from a 3D point cloud. The main assumption this algorithm is
@@ -36,26 +37,30 @@ is shown in the following figure. **Add figure**.
 ## Implementation 
 
 ## Multithreading
-I did implement a multithreaded version, although it does not improve running time due to Python's GIL that prevents
+I did implement a multi-threaded version, although it does not improve running time due to Python's GIL that prevents
 making use of more than one CPU core, or separate CPUs in order to run threads in parallel. I did find out that **Resume this on the linux machine**.
 
 ## Complexity
-Finding a seed costs <img src="https://latex.codecogs.com/gif.latex?O(n^2logn)"/> time. We iterate through all points.
-For each point `p1`, i check in <img src="https://latex.codecogs.com/gif.latex?O(1)"/> time it's neighbor cells
+Finding a seed costs <img src="https://latex.codecogs.com/gif.latex?O(n^2logn)" width="6%"/> time. We iterate through all points.
+For each point `p1`, i check in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> time it's neighbor cells
 in order to find all points that are at maximum  distance of `2r` from `p1`. I sort all neighbor points by distance from 
-`p1` in O(nlogn) to make sure the formed triangles will be as small as possible to reduce the number of cases where a
+`p1` in <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="6%"/>  to make sure the formed triangles will be as small as possible to reduce the number of cases where a
 point in contained inside the formed triangle. For each point `p2` in `p1`'s neighbors, the same sorting process occurs. 
 In order to check if a ball with radius of `r` can fit into the triangle defined by `p1`, `p2` and `p3`, i calculate the
-radius of the inner-circle of that triangle. This calculation is in O(1). If the normal of this triangle is in the same
-direction as the point's normal, the triangle is added to the mesh. This check is also in O(1). 
+radius of the inner-circle of that triangle. This calculation is in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> 
+. If the normal of this triangle is in the same direction as the point's normal, the triangle is added to the mesh.
+This check is also in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> . 
 
-Expanding a single triangle costs O(nlogn). For each of the triangle's edges `e=(p1,p2)`, i check in O(1) time the neighbor cells of `p1` and `p2`
-in order to find all points that are at maximum distance of `2r` from `p1` and `p2`. I sort the points as before, in O(nlogn).
+Expanding a single triangle costs <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="6%"/> . 
+For each of the triangle's edges `e=(p1,p2)`, i check in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> 
+time the neighbor cells of `p1` and `p2` in order to find all points that are at maximum distance of `2r` from `p1` and `p2`.
+I sort the points as before, in <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="6%"/> .
 I then check if the ball can fit into the formed triangle, and that it's normal vector is in the same
 direction as the points.
 
 At the worst case, the algorithm fails to expand the triangle everytime and has to find a new seed, making the total
-run time complexity O(n^3logn). This scenario is unlikely. I ignore in this section time required for visualization.
+run time complexity <img src="https://latex.codecogs.com/gif.latex?O(n^3logn)" width="6%"/> . This scenario is unlikely.
+I ignore in this section the time required for visualization.
 
 ## Visualizer
 I've created a visualizer for the algorithm using the open-source library Open3D [[3]](#3). The visualizer updates it's rendering 
@@ -103,9 +108,14 @@ will be drawn. If set to 100, all normals will be drawn. Default value is set to
 ## Examples
 
 ## Known Issues & TODOs
-- overlapping - explain how i solved it partly "will_triangles_overlap"
+- **Overlapping triangles** - I have reduced the number of overlapping expanding triangles by checking that the third
+  point we expand to is not in same side of the edge as the third point of the triangle we expand. For example, suppose we are
+  expanding the following triangle: _img_ `e` is the edge we pivot on. Suppose these are the 3 closest points to this edge: 
+  _img_. I make sure the algortim won't pick `p'` since it's in the same side of `e` as _. This does not apply to the seed
+  triangles. I couldn't think of a way to identify those overlapping cases at the moment.
 - "hole filling"
 - Triangles vertices are not saved in clock-wise order.
+- Generate .obj file out of the result mesh.
 - choosing the right radius
 - pre-checking if the point cloud is "dense enough"
 - find a metric to evaluate how well the constructed mesh is.

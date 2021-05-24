@@ -1,5 +1,5 @@
 import threading
-from typing import List
+from typing import List, Tuple
 import random
 from tqdm import tqdm
 import open3d as o3d
@@ -11,7 +11,6 @@ from edge import Edge
 from visualizer import Visualizer
 import utils
 
-from typing import Tuple
 
 
 INFINITY = 9999999999

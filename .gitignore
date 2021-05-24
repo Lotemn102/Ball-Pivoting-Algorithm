@@ -4,6 +4,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.obj
+test.py
+testing_data_genereation.py
 
 # C extensions
 *.so

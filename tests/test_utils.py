@@ -1,5 +1,4 @@
 import unittest
-
 from utils import calc_distance_points, calc_incircle_radius, calc_distance_point_to_edge
 from point import Point
 from edge import Edge
