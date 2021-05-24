@@ -1,8 +1,5 @@
-import threading
 from typing import List, Tuple
-import random
 from tqdm import tqdm
-import open3d as o3d
 import numpy as np
 
 from grid import Grid
@@ -27,7 +24,13 @@ class BPA:
         if visualizer is True:
             self.visualizer = Visualizer(self.points)
 
-    def read_points(self, path):
+    def read_points(self, path: str) -> List:
+        """
+        Read the points from a text file.
+
+        :param path: The path to the text file.
+        :return: A list with the points.
+        """
         points = []
         f = open(path, "r")
         lines = f.read().splitlines()
@@ -58,7 +61,130 @@ class BPA:
 
         return sorted_points
 
+    @staticmethod
+    def get_points_distances_from_edge(points: List, p1: Point, p2: Point) -> list:
+        """
+        Calculate points distance from an edge defined by p1 and p2. The heuristic for the distance is the summation of
+        euclidean distance between p1 and p, and p2 and p.
+
+        :param points: List of points to check.
+        :param p1: First point define the edge.
+        :param p2: Second point define the edge.
+        :return: The distances.
+        """
+        dists_p1 = [round(utils.calc_distance_points(p1, p3), 2) for p3 in points]
+        dists_p2 = [round(utils.calc_distance_points(p2, p3), 2) for p3 in points]
+        dists = [round(dists_p1[i] + dists_p2[i], 2) for i in range(len(dists_p1))]
+        return dists
+
+    @staticmethod
+    def get_third_point_of_triangle(triangle_edges: List, p1: Point, p2: Point) -> Point:
+        """
+        Given a triangle's edges, and 2 of the points of the triangle, find the thirds point.
+
+        :param triangle_edges: List of the edges.
+        :param p1: First point.
+        :param p2: Second point.
+        :return: The third point.
+        """
+        triangle_points = []
+        third_point = None
+
+        for triangle_edge in triangle_edges:
+            first_point, second_point = triangle_edge.p1, triangle_edge.p2
+            triangle_points.append(first_point)
+            triangle_points.append(second_point)
+
+        triangle_points = set(triangle_points)
+
+        for point in triangle_points:
+            if point.id != p1.id and point.id != p2.id:
+                third_point = point
+                break
+
+        return third_point
+
+    @staticmethod
+    def will_triangles_overlap(edge: Edge, p3: Point, p4: Point) -> bool:
+        """
+        Check if a triangle defined by the 2 points of "edge" and a point p3, will overlap  a triangle defined by
+        2 points of "edge" and a point p4.
+
+        :return: Boolean.
+        """
+        p1, p2 = edge.p1, edge.p2
+
+        # The following section checks if p3 is the same side of the edge as the third point of the rectangle
+        # we are expanding. If so - keep searching, so we won't have overlapping triangles in the mesh.
+        # Calculate the normal of the triangle
+        v1 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
+        v2 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
+        triangle_normal = np.cross(v1, v2)
+
+        # Calculate the normal to the plane defined by v2 and the triangle_normal (the plane orthogonal to
+        # the triangle).
+        plane_normal = np.cross(v2, triangle_normal)
+
+        # Check if p3 is in the same side of the plane as the third point.
+        v3 = [p4.x - p1.x, p4.y - p1.y, p4.z - p1.z]
+
+        return np.sign(np.dot(plane_normal, v1)) == np.sign(np.dot(plane_normal, v3))
+
+    def create_mesh(self,  limit_iterations: int = INFINITY, first_point_index: int = 0):
+        """
+        Create mesh from the points.
+
+        :param limit_iterations: (Optional) number of iterations to limit the algorithm's run.
+        :param first_point_index: First index the algorithm will try to find seed triangle from.
+        :return: None
+        """
+        tried_to_expand_counter = 0
+
+        with tqdm(total=limit_iterations) as pbar:
+            while 1 and tried_to_expand_counter < limit_iterations:
+                # Find a seed triangle.
+                _, edges, last_point_index = self.find_seed_triangle(first_point_index=first_point_index)
+                first_point_index = last_point_index
+
+                if edges is None or edges is -1:
+                    return
+
+                if self.visualizer is not None:
+                    self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles, color='red')
+
+                tried_to_expand_counter += 1
+                pbar.update(1)
+                i = 0
+
+                # Try to expand from each edge.
+                while i < len(edges) and tried_to_expand_counter < limit_iterations:
+                    e1, e2 = self.expand_triangle(edges[i], edges)
+                    tried_to_expand_counter += 1
+                    pbar.update(1)
+
+                    if e1 is not None and e2 is not None:
+                        edges = [e1, e2]
+                        i = 0
+
+                        if self.visualizer is not None:
+                            if tried_to_expand_counter >= limit_iterations:
+                                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
+                                                       color='blue')
+                            else:
+                                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
+                                                       color='green')
+                    else:
+                        i += 1
+
     def find_seed_triangle(self, first_point_index=0, num_recursion_calls=0) -> (int, Tuple):
+        """
+        Find seed triangle.
+
+        :param first_point_index: First index the algorithm will try to find seed triangle from.
+        :param num_recursion_calls: Number of recursion calls for the recursion stop condition. You should not pass to
+        this function anything beside 0 in this parameter.
+        :return: None.
+        """
         if num_recursion_calls > len(self.points):
             print("i was here")
             return -1, -1, -1
@@ -69,8 +195,6 @@ class BPA:
 
         if first_point_index >= len(self.points) - 1:
             first_point_index = 0
-
-        print(first_point_index)
 
         p1 = self.points[first_point_index]
         p1_neighbor_points = []
@@ -211,236 +335,21 @@ class BPA:
         # Else, find another free point and start over.
         return self.find_seed_triangle(first_point_index=first_point_index+1, num_recursion_calls=num_recursion_calls+1)
 
-    def create_mesh_thread(self,  limit_iterations=INFINITY, first_point_index=0):
-        tried_to_expand_counter = 0
-
-        while 1 and tried_to_expand_counter < limit_iterations:
-            # Find a seed triangle.
-            _, edges, last_point_index = self.find_seed_triangle(first_point_index=first_point_index)
-            first_point_index = last_point_index
-
-            if edges is None or edges is -1:
-                return
-
-            if self.visualizer is not None:
-                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles, color='red')
-
-            tried_to_expand_counter += 1
-            i = 0
-
-            # Try to expand from each edge.
-            while i < len(edges) and tried_to_expand_counter < limit_iterations:
-                e1, e2 = self.expand_triangle(edges[i], edges, False)
-                tried_to_expand_counter += 1
-
-                if e1 is not None and e2 is not None:
-                    edges = [e1, e2]
-                    i = 0
-
-                    if self.visualizer is not None:
-                        if tried_to_expand_counter >= limit_iterations:
-                            self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
-                                                   color='blue')
-                        else:
-                            self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
-                                                   color='green')
-                else:
-                    i += 1
-
-    def create_mesh(self, limit_iterations=INFINITY):
-        threads = []
-        partial_limit_iterations = int(limit_iterations / self.num_workers)
-
-        for i in range(self.num_workers):
-            random_point_index = random.randint(0, len(self.points))
-            t = threading.Thread(target=self.create_mesh_thread, args=(partial_limit_iterations, random_point_index, ))
-            threads.append(t)
-            t.start()
-
-        for thread in threads:
-            thread.join()
-
-        if self.visualizer is not None:
-            self.visualizer.lock()
-
-    def create_mesh_with_progress_bar(self, limit_iterations=float('inf')):
-        print('Starting...')
-        tried_to_expand_counter = 0
-
-        with tqdm(total=limit_iterations) as pbar:
-            while 1 and tried_to_expand_counter < limit_iterations:
-                # Find a seed triangle.
-                _, edges = self.find_seed_triangle()
-
-                if edges is None:
-                    return
-
-                if self.visualizer is not None:
-                    self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles, color='red')
-
-                tried_to_expand_counter += 1
-                pbar.update(1)
-                i = 0
-
-                # Try to expand from each edge.
-                while i < len(edges) and tried_to_expand_counter < limit_iterations:
-                    e1, e2 = self.expand_triangle(edges[i], edges, False)
-                    tried_to_expand_counter += 1
-                    pbar.update(1)
-
-                    if e1 is not None and e2 is not None:
-                        edges = [e1, e2]
-                        i = 0
-
-                        if self.visualizer is not None:
-                            if tried_to_expand_counter >= limit_iterations:
-                                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
-                                                       color='blue')
-                            else:
-                                self.visualizer.update(edges=self.grid.edges, grid_triangles=self.grid.triangles,
-                                                       color='green')
-                    else:
-                        i += 1
-
-        print("Finished.")
-
-    def show_me_what_the_edge_see(self, edges, sorted_points):
-        self.visualizer.close()
-        pcd = o3d.geometry.PointCloud()
-        points = np.array([(point.x, point.y, point.z) for point in sorted_points])
-        pcd.points = o3d.utility.Vector3dVector(points)
-
-        # Color the point in black.
-        points_mask = np.zeros(shape=(len(self.points), 3))
-        black_colors = np.zeros_like(points_mask)
-        pcd.colors = o3d.Vector3dVector(black_colors)
-
-        # Set up visualizer.
-        vis = o3d.visualization.Visualizer()
-        vis.create_window()
-        vis.add_geometry(pcd)
-
-        lines = []
-
-        for edge in edges:
-            lines.append([edge.p1.id, edge.p2.id])
-        line_set = o3d.geometry.LineSet()
-        points = np.array([(point.x, point.y, point.z) for point in sorted_points])
-        line_set.points = o3d.Vector3dVector(points)
-        line_set.lines = o3d.utility.Vector2iVector(lines)
-        vis.add_geometry(line_set)
-        vis.run()
-
-    @staticmethod
-    def get_points_distances_from_edge(points, p1, p2):
-        dists_p1 = [round(utils.calc_distance_points(p1, p3), 2) for p3 in points]
-        dists_p2 = [round(utils.calc_distance_points(p2, p3), 2) for p3 in points]
-        dists = [round(dists_p1[i] + dists_p2[i], 2) for i in range(len(dists_p1))]
-        return dists
-
-    @staticmethod
-    def get_third_point_of_triangle(triangle_edges, p1, p2):
-        triangle_points = []
-        third_point = None
-
-        for triangle_edge in triangle_edges:
-            first_point, second_point = triangle_edge.p1, triangle_edge.p2
-            triangle_points.append(first_point)
-            triangle_points.append(second_point)
-
-        triangle_points = set(triangle_points)
-
-        for point in triangle_points:
-            if point.id != p1.id and point.id != p2.id:
-                third_point = point
-                break
-
-        return third_point
-
-    def find_triangles_by_edge(self, edge):
-        possible_triangles = []
-
-        for triangle in self.grid.triangles:
-            if edge.p1 in triangle and edge.p2 in triangle:
-                third_point = [p for p in triangle if p.id != edge.p1.id and p.id != edge.p2.id]
-
-                if len(third_point) > 0:
-                    third_point = third_point[0]
-                    possible_triangles.append([edge.p1, edge.p2, third_point])
-
-        return possible_triangles
-
-    def is_there_a_path_between_two_points(self, p1, p2, point_of_triangle_we_creating):
-        edges_first_point_int = []
-        edges_second_point_int = []
-        points_first_edges = []
-        points_second_edges = []
-
-        for e in self.grid.edges:
-            if p1.id == e.p1.id or p1.id == e.p2.id:
-                edges_first_point_int.append(e)
-
-            if p2.id == e.p1.id or p2.id == e.p2.id:
-                edges_second_point_int.append(e)
-
-        for e in edges_first_point_int:
-            points_first_edges.append(e.p1.id)
-            points_first_edges.append(e.p2.id)
-
-        for e in edges_second_point_int:
-            points_second_edges.append(e.p1.id)
-            points_second_edges.append(e.p2.id)
-
-        points_first_edges = set(points_first_edges)
-
-        if p1.id in points_first_edges:
-            points_first_edges.remove(p1.id)
-
-        points_second_edges = set(points_second_edges)
-
-        if p2.id in points_second_edges:
-            points_second_edges.remove(p2.id)
-
-        intersection = set(points_first_edges & points_second_edges)
-        if point_of_triangle_we_creating.id in intersection:
-            intersection.remove(point_of_triangle_we_creating.id)
-
-        return len(intersection) > 0
-
-    @staticmethod
-    def will_triangles_overlap(edge, p3, p4):
+    def expand_triangle(self, edge: Edge, triangle_edges: List[Edge]) -> (Edge, Edge):
         """
-        Check if a triangle defined by the 2 points of "edge" and a point p3, will overlap  a triangle defined by
-        2 points of "edge" and a point p4.
+        Expand a triangle from an edge.
 
-        :return:
+        :param edge: The edge we are expanding.
+        :param triangle_edges: All edges of the triangle we are expanding.
+        :return: Tuple of two edges of the new formed triangle.
         """
-        p1, p2 = edge.p1, edge.p2
-
-        # The following section checks if p3 is the same side of the edge as the third point of the rectangle
-        # we are expanding. If so - keep searching, so we won't have overlapping triangles in the mesh.
-        # Calculate the normal of the triangle
-        v1 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
-        v2 = [p2.x - p1.x, p2.y - p1.y, p2.z - p1.z]
-        triangle_normal = np.cross(v1, v2)
-
-        # Calculate the normal to the plane defined by v2 and the triangle_normal (the plane orthogonal to
-        # the triangle).
-        plane_normal = np.cross(v2, triangle_normal)
-
-        # Check if p3 is in the same side of the plane as the third point.
-        v3 = [p4.x - p1.x, p4.y - p1.y, p4.z - p1.z]
-
-        return np.sign(np.dot(plane_normal, v1)) == np.sign(np.dot(plane_normal, v3))
-
-    def expand_triangle(self, edge: Edge, edges: List[Edge], debug_flag) -> (Edge, Edge):
         if edge.num_triangles_this_edge_is_in < 2:
             # Avoid duplications.
             intersect_cells = list(set(edge.p1.neighbor_nodes) & set(edge.p2.neighbor_nodes))
             possible_points = []
 
             p1, p2 = edge.p1, edge.p2
-            third_point_of_triangle_we_expand = self.get_third_point_of_triangle(edges, p1, p2)
+            third_point_of_triangle_we_expand = self.get_third_point_of_triangle(triangle_edges, p1, p2)
 
             for cell in intersect_cells:
                 possible_points.extend(self.grid.get_cell_points(cell))
@@ -453,9 +362,6 @@ class BPA:
             # seed than getting a far point.
             LIMIT_POINTS = 5
             sorted_possible_points = sorted_possible_points[:LIMIT_POINTS]
-
-            if debug_flag:
-                self.show_me_what_the_edge_see(edges, sorted_possible_points[:4])
 
             for index, p3 in enumerate(sorted_possible_points):
                 if p3.id == p1.id or p3.id == p2.id or p3.id == third_point_of_triangle_we_expand.id:
@@ -585,3 +491,70 @@ class BPA:
                 return None, None
 
         return None, None
+
+    def find_triangles_by_edge(self, edge: Edge) -> List:
+        """
+        Find all triangles the edge is in them.
+
+        :param edge: The edge we are looking at.
+        :return: List of the triangles this edge is in them.
+        """
+        possible_triangles = []
+
+        for triangle in self.grid.triangles:
+            if edge.p1 in triangle and edge.p2 in triangle:
+                third_point = [p for p in triangle if p.id != edge.p1.id and p.id != edge.p2.id]
+
+                if len(third_point) > 0:
+                    third_point = third_point[0]
+                    possible_triangles.append([edge.p1, edge.p2, third_point])
+
+        return possible_triangles
+
+    def is_there_a_path_between_two_points(self, p1, p2, point_of_triangle_we_creating):
+        """
+        Check if there is a path between two gicen points.
+
+        :param p1: First point we check.
+        :param p2: Second point we check.
+        :param point_of_triangle_we_creating: Third point of a triangle these 2 points are in.
+        :return:
+        """
+        edges_first_point_int = []
+        edges_second_point_int = []
+        points_first_edges = []
+        points_second_edges = []
+
+        for e in self.grid.edges:
+            if p1.id == e.p1.id or p1.id == e.p2.id:
+                edges_first_point_int.append(e)
+
+            if p2.id == e.p1.id or p2.id == e.p2.id:
+                edges_second_point_int.append(e)
+
+        for e in edges_first_point_int:
+            points_first_edges.append(e.p1.id)
+            points_first_edges.append(e.p2.id)
+
+        for e in edges_second_point_int:
+            points_second_edges.append(e.p1.id)
+            points_second_edges.append(e.p2.id)
+
+        points_first_edges = set(points_first_edges)
+
+        if p1.id in points_first_edges:
+            points_first_edges.remove(p1.id)
+
+        points_second_edges = set(points_second_edges)
+
+        if p2.id in points_second_edges:
+            points_second_edges.remove(p2.id)
+
+        intersection = set(points_first_edges & points_second_edges)
+        if point_of_triangle_we_creating.id in intersection:
+            # I already know these two points have a path, because they are part of a triangle. Remove that third point
+            # to find out if there are multiple routes between the points.
+            intersection.remove(point_of_triangle_we_creating.id)
+
+        return len(intersection) > 0
+

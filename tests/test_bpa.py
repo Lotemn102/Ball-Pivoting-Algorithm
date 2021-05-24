@@ -1,13 +1,5 @@
 import unittest
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
-
-from grid import Grid
-from point import Point
 from bpa import BPA
-import open3d as o3d
-import numpy as np
-import time
 
 
 class TestBPA(unittest.TestCase):
@@ -41,19 +33,17 @@ class TestBPA(unittest.TestCase):
         bpa.visualizer.lock()
 
     def test_multi_process(self):
-        # Load data.
-        bpa = BPA(path='../data/bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=3)
+        bpa = BPA(path='../data/bunny_with_normals.txt', radius=0.0005, visualizer=True)
         bpa.create_mesh(limit_iterations=1000)
         bpa.visualizer.lock()
 
     def test_medium_bunny(self):
-        # Load data.
-        bpa = BPA(path='../data/bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=1)
+        bpa = BPA(path='../data/bunny_with_normals.txt', radius=0.0005, visualizer=True)
         bpa.create_mesh()
         bpa.visualizer.lock()
 
     def test_normal_drawing(self):
-        bpa = BPA(path='../data/large_bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=1)
+        bpa = BPA(path='../data/large_bunny_with_normals.txt', radius=0.0005, visualizer=True)
         bpa.visualizer.draw_with_normals(normals_size=0.5)
 
 

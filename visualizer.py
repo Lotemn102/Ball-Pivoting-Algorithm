@@ -13,6 +13,11 @@ class Visualizer:
         self.rotation_angle = 0
 
     def init_visualiser(self):
+        """
+        Initialize visualizer.
+
+        :return: None.
+        """
         pcd = o3d.geometry.PointCloud()
         points = np.array([(point.x, point.y, point.z) for point in self.points])
         pcd.points = o3d.utility.Vector3dVector(points)
@@ -28,18 +33,11 @@ class Visualizer:
         self.visualizer.create_window()
         self.visualizer.add_geometry(pcd)
 
-    @staticmethod
-    def pairwise(iterable):
-        "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-        a, b = tee(iterable)
-        next(b, None)
-        return zip(a, b)
-
     def update(self, edges, grid_triangles, color='red'):
         """
         Updating only the edges (assuming points don't change).
 
-        :return: None
+        :return: None.
         """
 
         if color == 'red':
@@ -93,7 +91,7 @@ class Visualizer:
         self.visualizer.add_geometry(line_set)
         self.visualizer.add_geometry(mesh)
 
-        # Rotate the object
+        # Rotate the object.
         ctr = self.visualizer.get_view_control()
         self.rotation_angle += 4
         ctr.rotate(x=self.rotation_angle, y=0)
@@ -103,9 +101,19 @@ class Visualizer:
         self.visualizer.update_renderer()
 
     def lock(self):
+        """
+        Lock the visualizer. Program will stop until user closes the visualizer's window.
+
+        :return: None.
+        """
         self.visualizer.run()
 
     def close(self):
+        """
+        Close visualizer's window.
+
+        :return: None.
+        """
         self.visualizer.close()
 
     def draw_with_normals(self, percentage=10, normals_size=1):
@@ -113,7 +121,7 @@ class Visualizer:
         Draw the point cloud with it's normals.
 
         :param percentage: What percentage of normals to draw. Integer number in range [1, 100].
-        :return: None
+        :return: None.
         """
         self.visualizer.close()
 

@@ -5,4 +5,3 @@ class Edge:
         self.num_triangles_this_edge_is_in = 0 # To avoid cases where algorithm tries to expand edges that are already
         # part of 2 different triangles.
         self.color = [] # For visualization
-

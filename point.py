@@ -1,5 +1,6 @@
 import numpy as np
 import utils
+from typing import List
 
 class Point:
     def __init__(self, x, y, z, id, normal=None):
@@ -15,7 +16,12 @@ class Point:
         return self.z <= other.z
 
     @property
-    def neighbor_nodes(self):
+    def neighbor_nodes(self) -> List:
+        """
+        Get all the points neighbor points.
+
+        :return: List of neighbor points.
+        """
         neighbor_nodes = [self.cell_code]
 
         # Find the point's cell.

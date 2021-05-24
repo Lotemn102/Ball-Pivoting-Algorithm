@@ -87,10 +87,3 @@ class Grid:
 
     def remove_edge(self, edge: Edge):
         self.edges.remove(edge)
-
-
-
-
-
-
-

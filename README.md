@@ -171,6 +171,8 @@ An example of Stansford's bunny is in here:
   <img src="images/result2.png" width="250">
 </p>
 
+Red triangles are seed triangles, and green triangles are expanding triangles.
+
 ## Known Issues & TODOs
 - Holes! - As you can see in the example, the algorithm fails to reach a full mesh, and many "holes" are left.
 - Overlapping triangles - I have reduced the number of overlapping expanding triangles by checking that the third
@@ -198,4 +200,4 @@ Algorithm](https://www.ipol.im/pub/art/2014/81/article.pdf), by J. Digne, 2014.
 
 <a id="3">[3]</a>  [Open3D offical website](http://www.open3d.org/).
 
-<a id="4">[4]</a>  [Collection of .obj files](https://github.com/alecjacobson/common-3d-test-models)
+<a id="4">[4]</a>  [Collection of .obj files](https://github.com/alecjacobson/common-3d-test-models).
