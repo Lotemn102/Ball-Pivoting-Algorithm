@@ -2,7 +2,7 @@
 Python implementation of the ball-pivoting algorithm (BPA), which was published in 1999 by Bernardini  [[1]](#1). Some ideas in
 this implementation were inspired by the implementation of Digne, which was published in 2014 [[2]](#2).
 <p align="center">
-  <img src="images/figure1.png" width="200">
+  <img src="images/figure1.png" width="250">
 </p>
 
 ## Algorithm Overview
@@ -22,14 +22,16 @@ At this point, the algorithm looks for a new seed triangle, and the process desc
 The following figures demonstrates those two steps. 
 
 <p align="center">
-  <img src="images/figure2.png" width="200">
-  <div style="text-align:center;">2D view of the finding seed triangle step</div>
+  <img src="images/figure2.png" width="250">
 </p>
 
+<p align="center">2D view of the finding seed triangle step</p>
+
 <p align="center">
-  <img src="images/figure1.png" width="200">
-  <div style="text-align:center;">2D view of the expanding triangle step</div>
+  <img src="images/figure1.png" width="250">
 </p>
+
+<p align="center">2D view of the expanding triangle step</p>
 
 Two vague assumptions that are necessary for the algorithm are that the point cloud is "dense enough", and that the
 chosen `r` size is "slightly" larger than the average space between points. I couldn't find a metric method to evaluate
@@ -47,9 +49,10 @@ might get points that are `4r` apart, and i have to check that when iterating th
 is shown in the following figure. 
 
 <p align="center">
-  <img src="images/figure3.png" width="200">
-  <div style="text-align:center;">2D view on part of the grid. The orange cells are the neighbors of the green cell</div>
+  <img src="images/figure3.png" width="250">
 </p>
+
+<p align="center">2D view on part of the grid. The orange cells are the neighbors of the green cell</p>
 
 Each cell is represented by a single point. For example, all cells are represented by the point marked by `p`:
 <p align="center">
@@ -62,9 +65,11 @@ decrease the memory required for this cyclic-design, each point save encoded uni
 was done by shifting and concatenating the coordinates of the point that defines the cell.
 
 <p align="center">
-  <img src="images/figure6.png" width="200">
-  <div style="text-align:center;">Encodeing the cell define by (1, 2, 3) to 197121</div>
+  <img src="images/figure6.png" width="250">
 </p>
+
+<p align="center">Encodeing the cell define by (1, 2, 3) to 197121</p>
+
 
 ### Point
 Consists of 3 coordinates, the normal in this point, the cell node it's sitting in, according to the grid's initiation.
@@ -105,9 +110,11 @@ I've also added normal visualization for debugging the data generation. An examp
 following figure. 
 
 <p align="center">
-  <img src="images/figure7.png" width="100">
-  <div style="text-align:center;">Stansford's bunny with normals</div>
+  <img src="images/figure7.PNG" width="300">
 </p>
+
+<p align="center">Stansford's bunny with normals</p>
+
 
 ## Dataset
 This algorithm expects to get as input .txt file in the following pattern:
@@ -124,7 +131,7 @@ extracted each point's normal based on one of the facets it belongs to.
 - numpy>=1.20.1
 
 ### Available Functions
-- create_mesh(): Takes an optional argument `limit_iterations`, that limits the number of iterations of the algorithm. Generates 
+- **create_mesh()**: Takes an optional argument `limit_iterations`, that limits the number of iterations of the algorithm. Generates 
 a mesh. Must be called after initializing the BPA object.
   
     Example:
@@ -134,7 +141,7 @@ a mesh. Must be called after initializing the BPA object.
     bpa = BPA(path='bunny_with_normals.txt', radius=0.005, visualizer=True, num_workers=2)
     bpa.create_mesh(limit_iterations=1000)
     ```
-- visualizer.draw_with_normals(): Takes an optional argument `percentage` that limits the number of points that their normal
+- **visualizer.draw_with_normals()**: Takes an optional argument `percentage` that limits the number of points that their normal
 will be drawn. If set to 100, all normals will be drawn. Default value is set to 10. Another argument is `normals_size` that defines the drawn normal's size. 
   Default value is set to 1.
   
