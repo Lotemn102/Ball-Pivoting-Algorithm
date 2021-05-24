@@ -153,9 +153,20 @@ will be drawn. If set to 100, all normals will be drawn. Default value is set to
     bpa.visualizer.draw_with_normals(percentage=20, normals_size=2)
     ```
 
-## Examples
+## Example
+An example of Stansford's bunny is in here:
+[![](https://www.youtube.com/watch?v=M7yjUFE5mTI/0.jpg)](https://www.youtube.com/watch?v=M7yjUFE5mTI)
+
+<p align="center">
+  <img src="images/result1.png" width="300">
+</p>
+
+<p align="center">
+  <img src="images/result2.png" width="300">
+</p>
 
 ## Known Issues & TODOs
+- Holes! - As you can see in the example, the algorithm fails to reach a full mesh, and many "holes" are left.
 - Overlapping triangles - I have reduced the number of overlapping expanding triangles by checking that the third
   point we expand to is not in same side of the edge as the third point of the triangle we expand. For example, suppose we are
   expanding the orange triangle:

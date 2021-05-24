@@ -59,15 +59,18 @@ class BPA:
         return sorted_points
 
     def find_seed_triangle(self, first_point_index=0, num_recursion_calls=0) -> (int, Tuple):
-        if num_recursion_calls > 10:
+        if num_recursion_calls > len(self.points):
+            print("i was here")
             return -1, -1, -1
 
         # Find a free point.
-        while first_point_index < len(self.points)-1 and self.points[first_point_index].is_used:
-            first_point_index += 1
+        #while first_point_index < len(self.points)-1 and self.points[first_point_index].is_used:
+        #    first_point_index += 1
 
         if first_point_index >= len(self.points) - 1:
             first_point_index = 0
+
+        print(first_point_index)
 
         p1 = self.points[first_point_index]
         p1_neighbor_points = []
@@ -91,7 +94,8 @@ class BPA:
         # For each other point, find all points that are in 2r distance from that other point.
         for p2 in p1_neighbor_points:
             if p2.is_used:
-                continue
+                #continue
+                pass
 
             if p2.x == p1.x and p2.y == p1.y and p2.z == p1.z:
                 continue

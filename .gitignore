@@ -6,6 +6,7 @@ __pycache__/
 *.obj
 test.py
 testing_data_genereation.py
+*.mp4
 
 # C extensions
 *.so
