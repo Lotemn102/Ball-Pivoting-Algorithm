@@ -78,19 +78,19 @@ making use of more than one CPU core, or separate CPUs in order to run threads i
 
 ## Complexity
 Finding a seed costs <img src="https://latex.codecogs.com/gif.latex?O(n^2logn)" width="6%"/> time. We iterate through all points.
-For each point `p1`, i check in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> time it's neighbor cells
+For each point `p1`, i check in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="3%"/> time it's neighbor cells
 in order to find all points that are at maximum  distance of `2r` from `p1`. I sort all neighbor points by distance from 
-`p1` in <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="6%"/>  to make sure the formed triangles will be as small as possible to reduce the number of cases where a
+`p1` in <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="5%"/>  to make sure the formed triangles will be as small as possible to reduce the number of cases where a
 point in contained inside the formed triangle. For each point `p2` in `p1`'s neighbors, the same sorting process occurs. 
 In order to check if a ball with radius of `r` can fit into the triangle defined by `p1`, `p2` and `p3`, i calculate the
-radius of the inner-circle of that triangle. This calculation is in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> 
+radius of the inner-circle of that triangle. This calculation is in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="3%"/> 
 . If the normal of this triangle is in the same direction as the point's normal, the triangle is added to the mesh.
-This check is also in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> . 
+This check is also in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="3%"/> . 
 
-Expanding a single triangle costs <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="6%"/> . 
-For each of the triangle's edges `e=(p1,p2)`, i check in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="6%"/> 
+Expanding a single triangle costs <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="5%"/> . 
+For each of the triangle's edges `e=(p1,p2)`, i check in <img src="https://latex.codecogs.com/gif.latex?O(1)" width="3%"/> 
 time the neighbor cells of `p1` and `p2` in order to find all points that are at maximum distance of `2r` from `p1` and `p2`.
-I sort the points as before, in <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="6%"/> .
+I sort the points as before, in <img src="https://latex.codecogs.com/gif.latex?O(nlogn)" width="5%"/> .
 I then check if the ball can fit into the formed triangle, and that it's normal vector is in the same
 direction as the points.
 
@@ -148,7 +148,7 @@ will be drawn. If set to 100, all normals will be drawn. Default value is set to
   point we expand to is not in same side of the edge as the third point of the triangle we expand. For example, suppose we are
   expanding the orange triangle:
   <p align="center">
-    <img src="images/figure3.png" width="200">
+    <img src="images/figure4.png" width="200">
   </p>
   
   `e` is the edge we pivot on. Suppose these are the algorithm sees the point `p'`.
