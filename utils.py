@@ -40,6 +40,7 @@ def calc_incircle_radius(p1, p2, p3):
     r = math.sqrt(((s - edge_1_length)*(s - edge_2_length)*(s - edge_3_length)) / s)
     return r
 
+
 def calc_min_max_angle_of_triangle(e1, e2, e3):
     v1 = [e1.p1.x - e1.p2.x, e1.p1.y - e1.p2.y, e1.p1.z - e1.p2.z]
     v2 = [e2.p1.x - e2.p2.x, e2.p1.y - e2.p2.y, e2.p1.z - e2.p2.z]

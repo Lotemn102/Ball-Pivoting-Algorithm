@@ -11,8 +11,6 @@ from edge import Edge
 from visualizer import Visualizer
 import utils
 
-
-
 INFINITY = 9999999999
 
 class BPA:

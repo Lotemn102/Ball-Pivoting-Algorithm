@@ -1,5 +1,5 @@
 import unittest
-from utils import calc_distance_points, calc_incircle_radius, calc_distance_point_to_edge
+from utils import calc_distance_points, calc_incircle_radius, calc_distance_point_to_edge, encode_cell, decode_cell
 from point import Point
 from edge import Edge
 
@@ -23,7 +23,6 @@ class TestUtils(unittest.TestCase):
 
         r = calc_incircle_radius(p1, p2, p3)
         self.assertEqual(round(r, 3), 0.592)
-
         p1 = Point(1, 1, 1, id=0)
         p2 = Point(0, -1, 0, id=0)
         p3 = Point(2, -1, 3, id=0)
@@ -47,6 +46,18 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(d1, 1.0)
         self.assertEqual(d2, 1.0)
+
+    def test_encoding_decoding(self):
+        x = 1
+        y = 2
+        z = 3
+
+        code = encode_cell(x, y, z)
+        x, y, z = decode_cell(code)
+
+        self.assertEqual(x, 1)
+        self.assertEqual(y, 2)
+        self.assertEqual(z, 3)
 
 
 
