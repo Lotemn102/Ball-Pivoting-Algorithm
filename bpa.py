@@ -4,7 +4,6 @@ import random
 from tqdm import tqdm
 import open3d as o3d
 import numpy as np
-import copy
 
 from grid import Grid
 from point import Point
@@ -21,9 +20,7 @@ class BPA:
     def __init__(self, path, radius, visualizer=False, num_workers=1):
         self.first_free_point_index = 0
         self.num_points_i_tried_to_seed_from = 0
-        self.points = self.read_points(path) # "free points" will be on the beginning of the list, "used points" will
-        # be on the end of the list.
-        self.const_points = copy.deepcopy(self.points) # For visualizing
+        self.points = self.read_points(path)
         self.radius = radius
         self.grid = Grid(points=self.points, radius=radius)
         self.num_free_points = len(self.points)
@@ -137,7 +134,7 @@ class BPA:
                     v2 = [p3.x - p1.x, p3.y - p1.y, p3.z - p1.z]
                     triangle_normal = np.cross(v1, v2)
 
-                    # Check if the normal of the triangle is on the same direction with all 3 points normals.
+                    # Check if the normal of the triangle is on the same direction with points normals.
                     if np.dot(triangle_normal, p1.normal) < 0:
                         continue
 
@@ -313,7 +310,7 @@ class BPA:
         pcd.points = o3d.utility.Vector3dVector(points)
 
         # Color the point in black.
-        points_mask = np.zeros(shape=(len(self.const_points), 3))
+        points_mask = np.zeros(shape=(len(self.points), 3))
         black_colors = np.zeros_like(points_mask)
         pcd.colors = o3d.Vector3dVector(black_colors)
 

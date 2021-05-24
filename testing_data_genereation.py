@@ -6,11 +6,11 @@ bpa = BPA(path='output.txt', radius=0.04, visualizer=True)
 bpa.visualizer.close()
 
 pcd = o3d.geometry.PointCloud()
-points = np.array([(point.x, point.y, point.z) for point in bpa.const_points])
+points = np.array([(point.x, point.y, point.z) for point in bpa.points])
 pcd.points = o3d.utility.Vector3dVector(points)
 
 # Color the point in black.
-points_mask = np.zeros(shape=(len(bpa.const_points), 3))
+points_mask = np.zeros(shape=(len(bpa.points), 3))
 black_colors = np.zeros_like(points_mask)
 pcd.colors = o3d.Vector3dVector(black_colors)
 
@@ -21,7 +21,7 @@ vis.add_geometry(pcd)
 
 points = []
 
-for p in bpa.const_points:
+for p in bpa.points:
     # Add the original point
     points.append([p.x, p.y, p.z])
 

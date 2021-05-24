@@ -95,12 +95,6 @@ class TestBPA(unittest.TestCase):
         print("Finished.")
         bpa.visualizer.lock()
 
-    @staticmethod
-    def rotate_view(vis):
-        ctr = vis.get_view_control()
-        ctr.rotate(10.0, 0.0)
-        return False
-
     def test_multi_process(self):
         # Load data.
         # TODO: Check why this runs very slow? maybe pass limit_iterations to find_seed?
