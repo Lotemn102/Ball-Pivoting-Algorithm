@@ -36,7 +36,7 @@ chosen `r` size is "slightly" larger than the average space between points. I co
 those two variables at the moment, and more work needs to be done on this.
   
 
-## Data Structure
+## Data Structures
 ### Grid
 I used a virtual 3D grid in which in each cell of the grid, all points are at distance of maximum `2r` from all 
 other points. With this method, i am able to limit the number of points i need to search. Since we are looking to fit a
@@ -101,8 +101,13 @@ I ignore in this section the time required for visualization.
 ## Visualizer
 I've created a visualizer for the algorithm using the open-source library Open3D [[3]](#3). The visualizer updates it's rendering 
 after a seed triangle is found, or an expanding triangle is found. An example of the visualizer is shown in the examples section.
-I've also added normal visualization for debuging the data generation. An example for that is shown in the
-following figure. **Add figure**.
+I've also added normal visualization for debugging the data generation. An example for that is shown in the
+following figure. 
+
+<p align="center">
+  <img src="images/figure7.png" width="100">
+  <div style="text-align:center;">Stansford's bunny with normals</div>
+</p>
 
 ## Dataset
 This algorithm expects to get as input .txt file in the following pattern:

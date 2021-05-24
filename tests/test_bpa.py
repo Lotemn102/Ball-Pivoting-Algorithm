@@ -42,13 +42,13 @@ class TestBPA(unittest.TestCase):
 
     def test_multi_process(self):
         # Load data.
-        bpa = BPA(path='bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=1)
-        bpa.create_mesh_thread(limit_iterations=1000)
+        bpa = BPA(path='../data/bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=1)
+        bpa.create_mesh(limit_iterations=1000)
         bpa.visualizer.lock()
 
     def test_normal_drawing(self):
-        bpa = BPA(path='../data/bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=1)
-        bpa.visualizer.draw_with_normals()
+        bpa = BPA(path='../data/large_bunny_with_normals.txt', radius=0.0005, visualizer=True, num_workers=1)
+        bpa.visualizer.draw_with_normals(normals_size=0.5)
 
 
 
