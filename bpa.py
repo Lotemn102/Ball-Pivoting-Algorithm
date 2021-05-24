@@ -1,21 +1,19 @@
-import random
-import multiprocessing
 import threading
-import concurrent.futures
-import time
 from typing import List
 import random
+from tqdm import tqdm
+import open3d as o3d
+import numpy as np
+import copy
 
 from grid import Grid
 from point import Point
 from edge import Edge
 from visualizer import Visualizer
 import utils
-import open3d as o3d
-import numpy as np
-import copy
+
 from typing import Tuple
-from tqdm import tqdm
+
 
 INFINITY = 9999999999
 
@@ -77,8 +75,6 @@ class BPA:
         if first_point_index >= len(self.points) - 1:
             first_point_index = 0
 
-        print(first_point_index)
-        #self.num_points_i_tried_to_seed_from += 1
         p1 = self.points[first_point_index]
         p1_neighbor_points = []
 
