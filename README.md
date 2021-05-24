@@ -155,14 +155,20 @@ will be drawn. If set to 100, all normals will be drawn. Default value is set to
 
 ## Example
 An example of Stansford's bunny is in here:
-[![](https://www.youtube.com/watch?v=M7yjUFE5mTI/0.jpg)](https://www.youtube.com/watch?v=M7yjUFE5mTI)
 
 <p align="center">
-  <img src="images/result1.png" width="300">
+  <a href="https://www.youtube.com/watch?v=M7yjUFE5mTI">
+    <img src="images/result_video_bait.png" width="350">
+   </a>
+</p>
+
+
+<p align="center">
+  <img src="images/result1.png" width="250">
 </p>
 
 <p align="center">
-  <img src="images/result2.png" width="300">
+  <img src="images/result2.png" width="250">
 </p>
 
 ## Known Issues & TODOs
