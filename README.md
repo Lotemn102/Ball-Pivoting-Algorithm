@@ -138,7 +138,7 @@ a mesh. Must be called after initializing the BPA object.
     ```python
     from bpa import BPA
     
-    bpa = BPA(path='bunny_with_normals.txt', radius=0.005, visualizer=True, num_workers=2)
+    bpa = BPA(path='bunny_with_normals.txt', radius=0.005, visualizer=True)
     bpa.create_mesh(limit_iterations=1000)
     ```
 - **visualizer.draw_with_normals()**: Takes an optional argument `percentage` that limits the number of points that their normal
@@ -149,7 +149,7 @@ will be drawn. If set to 100, all normals will be drawn. Default value is set to
     ```python
     from bpa import BPA
     
-    bpa = BPA(path='bunny_with_normals.txt', radius=0.005, visualizer=True, num_workers=2)
+    bpa = BPA(path='bunny_with_normals.txt', radius=0.005, visualizer=True)
     bpa.visualizer.draw_with_normals(percentage=20, normals_size=2)
     ```
 
