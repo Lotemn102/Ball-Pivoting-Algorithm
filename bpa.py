@@ -8,7 +8,7 @@ from edge import Edge
 from visualizer import Visualizer
 import utils
 
-INFINITY = 9999999999
+INFINITY = np.inf
 
 class BPA:
     def __init__(self, path, radius, visualizer=False, num_workers=1):
